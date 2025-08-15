@@ -1,0 +1,22 @@
+{
+  "name": "agent-demo",
+  "version": "1.0.0",
+  "description": "A website agent demo using ATXP with Express backend and React frontend",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm start",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "install-all": "npm install && cd backend && npm install && npm run build && cd ../frontend && npm install",
+    "start": "cd backend && npm start"
+  },
+  "keywords": ["express", "react", "atxp", "agent"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
