@@ -8,7 +8,7 @@ When a user navigates to the running web app, they are presented with a text inp
 
 ```
 agent-demo/
-├── backend/                 # Express server
+├── backend/                # Express server
 │   ├── server.ts           # Main server file (TypeScript)
 │   ├── tsconfig.json       # TypeScript configuration
 │   ├── package.json        # Backend dependencies

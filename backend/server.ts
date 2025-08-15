@@ -5,7 +5,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 
 // Import the ATXP client SDK
-import { atxpClient, Account } from '@longrun/atxp-client';
+// TODO: Use the @atxp/client package instead of @longrun/atxp-client
+import { atxpClient } from '@longrun/atxp-client';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -54,7 +55,6 @@ const filestoreService = {
 };
 
 // Helper config object for the ATXP Database MCP Server
-
 const databaseService = {
   mcpServer: 'https://database.mcp.atxp.ai',
   toolName: 'atxp_database',
