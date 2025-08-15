@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 // Import the ATXP client SDK
 // TODO: Use the @atxp/client package instead of @longrun/atxp-client
-import { atxpClient } from '@longrun/atxp-client';
+import { atxpClient, ATXPAccount } from '@longrun/atxp-client';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -86,28 +86,19 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   // Create a client using the `atxpClient` function for the ATXP Image MCP Server
   const imageClient = await atxpClient({
     mcpServer: imageService.mcpServer,
-    account: {
-      accountId: ATXP_CONNECTION_STRING,
-      paymentMakers: {},
-    },
+    account: new ATXPAccount(ATXP_CONNECTION_STRING),
   });
 
   // Create a client using the `atxpClient` function for the ATXP Filestore MCP Server
   const filestoreClient = await atxpClient({
     mcpServer: filestoreService.mcpServer,
-    account: {
-      accountId: ATXP_CONNECTION_STRING,
-      paymentMakers: {},
-    },
+    account: new ATXPAccount(ATXP_CONNECTION_STRING),
   });
 
   // Create a client using the `atxpClient` function for the ATXP Database MCP Server
   const databaseClient = await atxpClient({
     mcpServer: databaseService.mcpServer,
-    account: {
-      accountId: ATXP_CONNECTION_STRING,
-      paymentMakers: {},
-    },
+    account: new ATXPAccount(ATXP_CONNECTION_STRING),
   });
 
   try {
