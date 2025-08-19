@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 // Import the ATXP client SDK
 // TODO: Use the @atxp/client package instead of @longrun/atxp-client
-import { atxpClient, ATXPAccount } from '@longrun/atxp-client';
+import { atxpClient, ATXPAccount } from '@atxp/client';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
