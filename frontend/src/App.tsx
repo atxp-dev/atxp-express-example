@@ -8,6 +8,7 @@ interface Text {
   text: string;
   timestamp: string;
   imageUrl: string;
+  fileName: string;
   fileId: string;
 }
 
@@ -108,7 +109,10 @@ function App(): JSX.Element {
                 <div key={text.id} className="text-item">
                   <p className="text-content">{text.text}</p>
                   {text.imageUrl && (
-                    <img src={text.imageUrl} alt="Generated from text" className="text-image" />
+                    <figure>
+                      <img src={text.imageUrl} alt={text.text} className="text-image" />
+                      <figcaption>{text.fileName}</figcaption>
+                    </figure>
                   )}
                   <small className="text-timestamp">
                     Submitted: {formatDate(text.timestamp)}

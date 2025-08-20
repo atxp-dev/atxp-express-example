@@ -31,7 +31,7 @@ interface Text {
   text: string;
   timestamp: string;
   imageUrl: string;
-  fileId: string;
+  fileName: string;
 }
 
 // In-memory storage for texts (in production, use a database)
@@ -55,17 +55,12 @@ const filestoreService = {
   mcpServer: 'https://filestore.mcp.atxp.ai',
   toolName: 'filestore_write',
   description: 'ATXP Filestore MCP server',
-  getArguments: (query : string) => ({ query }),
-  getResult: (result: any) => result.content[0].text
-};
-
-// Helper config object for the ATXP Database MCP Server
-const databaseService = {
-  mcpServer: 'https://database.mcp.atxp.ai',
-  toolName: 'atxp_database',
-  description: 'ATXP Database MCP server',
-  getArguments: (query: string) => ({ query }),
-  getResult: (result: any) => result.content[0].text
+  getArguments: (sourceUrl : string) => ({ sourceUrl, makePublic: true }),
+  getResult: (result: any) => {
+    // Parse the JSON string from the result
+    const jsonString = result.content[0].text;
+    return JSON.parse(jsonString);
+  }
 };
 
 // Routes
@@ -85,7 +80,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     text: text.trim(),
     timestamp: new Date().toISOString(),
     imageUrl: '',
-    fileId: '',
+    fileName: '',
   };
 
   // Create a client using the `atxpClient` function for the ATXP Image MCP Server
@@ -99,13 +94,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   // Create a client using the `atxpClient` function for the ATXP Filestore MCP Server
   const filestoreClient = await atxpClient({
     mcpServer: filestoreService.mcpServer,
-    account: new ATXPAccount(ATXP_CONNECTION_STRING),
-  });
-
-  // Create a client using the `atxpClient` function for the ATXP Database MCP Server
-  const databaseClient = await atxpClient({
-    mcpServer: databaseService.mcpServer,
-    account: new ATXPAccount(ATXP_CONNECTION_STRING),
+    account: account,
   });
 
   try {
@@ -118,12 +107,9 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     
     // Process the image result only on success
     const imageResult = imageService.getResult(result);
-    // imageResult is a json string of the form {"status":"success","url":"https://novellum-filestore-mcp.s3.us-east-2.amazonaws.com/0x445ab9a9837f519B6e03BB3a6CC6970CD0E35a7a/4a0e3dc6-0698-48fc-8869-aa24a9031721.png"}
-
-    newText.imageUrl = imageResult.url;
     console.log('Result:', imageResult);
 
-    /*
+    
     // Store the image in the ATXP Filestore MCP Server
     try {
       const result = await filestoreClient.callTool({
@@ -131,21 +117,19 @@ app.post('/api/texts', async (req: Request, res: Response) => {
           arguments: filestoreService.getArguments(imageResult.url),
       });
       console.log(`${filestoreService.description} result successful!`);
-      const fileId = filestoreService.getResult(result);
-      newText.fileId = fileId;
-      console.log('Result:', fileId);
+      const fileResult = filestoreService.getResult(result);
+      newText.fileName = fileResult.filename;
+      newText.imageUrl = fileResult.url;
 
+      console.log('Result:', fileResult);
 
-      // TODO: Create a new row in the database via the ATXP Database MCP Server
+      texts.push(newText);
+      res.status(201).json(newText);
     } catch (error) {
       console.error(`Error with ${filestoreService.description}:`, error);
       // Don't exit the process, just log the error
       console.log('Continuing without filestore service...');
-    }*/
-    
-    // Only add the text to the array and return success if image processing completed
-    texts.push(newText);
-    res.status(201).json(newText);
+    }
   } catch (error) {
     console.error(`Error with ${imageService.description}:`, error);
     // Return an error response if image processing fails
