@@ -18,7 +18,7 @@ const ATXP_CONNECTION_STRING = process.env.ATXP_CONNECTION_STRING;
 if (!ATXP_CONNECTION_STRING) {
   throw new Error('ATXP_CONNECTION_STRING is not set');
 }
-const account = new ATXPAccount(ATXP_CONNECTION_STRING);
+const account = new ATXPAccount(ATXP_CONNECTION_STRING, {network: 'base'});
 
 // Middleware
 app.use(cors());
@@ -43,10 +43,13 @@ const imageService = {
   toolName: 'image_create_image',
   description: 'ATXP Image MCP server',
   getArguments: (prompt: string) => ({ prompt }),
-  getResult: (result: any) => result.content[0].text
+  getResult: (result: any) => {
+    // Parse the JSON string from the result
+    const jsonString = result.content[0].text;
+    return JSON.parse(jsonString);
+  }
 };
 
-/*
 // Helper config object for the ATXP Filestore MCP Server
 const filestoreService = {
   mcpServer: 'https://filestore.mcp.atxp.ai',
@@ -64,7 +67,6 @@ const databaseService = {
   getArguments: (query: string) => ({ query }),
   getResult: (result: any) => result.content[0].text
 };
-*/
 
 // Routes
 app.get('/api/texts', (req: Request, res: Response) => {
@@ -94,7 +96,6 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     logger: new ConsoleLogger({level: LogLevel.DEBUG}),
   });
 
-  /*
   // Create a client using the `atxpClient` function for the ATXP Filestore MCP Server
   const filestoreClient = await atxpClient({
     mcpServer: filestoreService.mcpServer,
@@ -106,7 +107,6 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     mcpServer: databaseService.mcpServer,
     account: new ATXPAccount(ATXP_CONNECTION_STRING),
   });
-  */
 
   try {
     // Create an image from the text using the ATXP Image MCP Server
@@ -115,16 +115,20 @@ app.post('/api/texts', async (req: Request, res: Response) => {
         arguments: imageService.getArguments(text),
     });
     console.log(`${imageService.description} result successful!`);
-    const imageUrl = imageService.getResult(result);
-    newText.imageUrl = imageUrl;
-    console.log('Result:', imageUrl);
+    
+    // Process the image result only on success
+    const imageResult = imageService.getResult(result);
+    // imageResult is a json string of the form {"status":"success","url":"https://novellum-filestore-mcp.s3.us-east-2.amazonaws.com/0x445ab9a9837f519B6e03BB3a6CC6970CD0E35a7a/4a0e3dc6-0698-48fc-8869-aa24a9031721.png"}
+
+    newText.imageUrl = imageResult.url;
+    console.log('Result:', imageResult);
 
     /*
     // Store the image in the ATXP Filestore MCP Server
     try {
       const result = await filestoreClient.callTool({
           name: filestoreService.toolName,
-          arguments: filestoreService.getArguments(imageUrl),
+          arguments: filestoreService.getArguments(imageResult.url),
       });
       console.log(`${filestoreService.description} result successful!`);
       const fileId = filestoreService.getResult(result);
@@ -137,16 +141,17 @@ app.post('/api/texts', async (req: Request, res: Response) => {
       console.error(`Error with ${filestoreService.description}:`, error);
       // Don't exit the process, just log the error
       console.log('Continuing without filestore service...');
-    }
-    */
+    }*/
+    
+    // Only add the text to the array and return success if image processing completed
+    texts.push(newText);
+    res.status(201).json(newText);
   } catch (error) {
     console.error(`Error with ${imageService.description}:`, error);
-    // Don't exit the process, just log the error
-    console.log('Continuing without image service...');
+    // Return an error response if image processing fails
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    res.status(500).json({ error: 'Failed to process image', details: errorMessage });
   }
- 
-  texts.push(newText);
-  res.status(201).json(newText);
 });
 
 // Health check endpoint
