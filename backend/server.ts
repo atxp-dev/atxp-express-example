@@ -3,6 +3,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
 import dotenv from 'dotenv';
+import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate } from './stage';
 
 // Import the ATXP client SDK
 import { atxpClient, ATXPAccount } from '@atxp/client';
@@ -11,16 +12,20 @@ import { ConsoleLogger, LogLevel } from '@atxp/common';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+// Create the Express app
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Read the ATXP_CONNECTION_STRING from the environment variables
 const ATXP_CONNECTION_STRING = process.env.ATXP_CONNECTION_STRING;
 if (!ATXP_CONNECTION_STRING) {
   throw new Error('ATXP_CONNECTION_STRING is not set');
 }
+
+// Create an ATXPAccount object using the ATXP_CONNECTION_STRING
 const account = new ATXPAccount(ATXP_CONNECTION_STRING, {network: 'base'});
 
-// Middleware
+// Set up CORS and body parsing middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
@@ -39,29 +44,8 @@ interface Text {
   fileName: string;
 }
 
-// Define the Stage interface for progress tracking
-interface Stage {
-  id: string;
-  stage: string;
-  message: string;
-  timestamp: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'error';
-}
-
 // In-memory storage for texts (in production, use a database)
 let texts: Text[] = [];
-
-// Store active SSE connections
-const clients = new Set<Response>();
-
-// Helper function to send SSE updates to all connected clients
-const sendSSEUpdate = (data: any) => {
-  console.log('Sending SSE update:', data);
-  const sseData = `data: ${JSON.stringify(data)}\n\n`;
-  clients.forEach(client => {
-    client.write(sseData);
-  });
-};
 
 // Helper config object for the ATXP Image MCP Server
 const imageService = {
@@ -117,11 +101,11 @@ app.get('/api/progress', (req: Request, res: Response) => {
   res.write(`data: ${JSON.stringify({ type: 'connected', message: 'SSE connection established' })}\n\n`);
 
   // Add client to the set
-  clients.add(res);
+  addSSEClient(res);
 
   // Remove client when connection closes
   req.on('close', () => {
-    clients.delete(res);
+    removeSSEClient(res);
   });
 });
 
@@ -140,14 +124,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   const requestId = Date.now().toString();
 
   // Send initial stage update
-  sendSSEUpdate({
-    id: requestId,
-    type: 'stage-update',
-    stage: 'initializing',
-    message: 'Starting image generation process...',
-    timestamp: new Date().toISOString(),
-    status: 'in-progress'
-  });
+  sendStageUpdate(requestId, 'initializing', 'Starting image generation process...', 'in-progress');
 
   let newText: Text = {
     id: Date.now(),
@@ -158,14 +135,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   };
 
   // Send stage update for client creation
-  sendSSEUpdate({
-    id: requestId,
-    type: 'stage-update',
-    stage: 'creating-clients',
-    message: 'Initializing ATXP clients...',
-    timestamp: new Date().toISOString(),
-    status: 'in-progress'
-  });
+  sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
 
   // Create a client using the `atxpClient` function for the ATXP Image MCP Server
   const imageClient = await atxpClient({
@@ -182,14 +152,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   });
 
   // Send stage update for image generation
-  sendSSEUpdate({
-    id: requestId,
-    type: 'stage-update',
-    stage: 'generating-image',
-    message: 'Generating image from text using ATXP Image MCP Server...',
-    timestamp: new Date().toISOString(),
-    status: 'in-progress'
-  });
+  sendStageUpdate(requestId, 'generating-image', 'Generating image from text using ATXP Image MCP Server...', 'in-progress');
 
   try {
     // Create an image from the text using the ATXP Image MCP Server
@@ -200,28 +163,14 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     console.log(`${imageService.description} result successful!`);
 
     // Send stage update for image generation completion
-    sendSSEUpdate({
-      id: requestId,
-      type: 'stage-update',
-      stage: 'image-generated',
-      message: 'Image generated successfully!',
-      timestamp: new Date().toISOString(),
-      status: 'completed'
-    });
+    sendStageUpdate(requestId, 'image-generated', 'Image generated successfully!', 'completed');
 
     // Process the image result only on success
     const imageResult = imageService.getResult(result);
     console.log('Result:', imageResult);
 
     // Send stage update for file storage
-    sendSSEUpdate({
-      id: requestId,
-      type: 'stage-update',
-      stage: 'storing-file',
-      message: 'Storing image in ATXP Filestore...',
-      timestamp: new Date().toISOString(),
-      status: 'in-progress'
-    });
+    sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
 
     // Store the image in the ATXP Filestore MCP Server
     try {
@@ -237,14 +186,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
       console.log('Result:', fileResult);
 
       // Send stage update for completion
-      sendSSEUpdate({
-        id: requestId,
-        type: 'stage-update',
-        stage: 'completed',
-        message: 'Image stored successfully! Process completed.',
-        timestamp: new Date().toISOString(),
-        status: 'final'
-      });
+      sendStageUpdate(requestId, 'completed', 'Image stored successfully! Process completed.', 'final');
 
       texts.push(newText);
       res.status(201).json(newText);
