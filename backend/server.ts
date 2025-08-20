@@ -5,8 +5,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 
 // Import the ATXP client SDK
-// TODO: Use the @atxp/client package instead of @longrun/atxp-client
 import { atxpClient, ATXPAccount } from '@atxp/client';
+import { ConsoleLogger, LogLevel } from '@atxp/common';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -18,6 +18,7 @@ const ATXP_CONNECTION_STRING = process.env.ATXP_CONNECTION_STRING;
 if (!ATXP_CONNECTION_STRING) {
   throw new Error('ATXP_CONNECTION_STRING is not set');
 }
+const account = new ATXPAccount(ATXP_CONNECTION_STRING);
 
 // Middleware
 app.use(cors());
@@ -39,18 +40,19 @@ let texts: Text[] = [];
 // Helper config object for the ATXP Image MCP Server
 const imageService = {
   mcpServer: 'https://image.mcp.atxp.ai',
-  toolName: 'atxp_image',
+  toolName: 'image_create_image',
   description: 'ATXP Image MCP server',
-  getArguments: (query: string) => ({ query }),
+  getArguments: (prompt: string) => ({ prompt }),
   getResult: (result: any) => result.content[0].text
 };
 
+/*
 // Helper config object for the ATXP Filestore MCP Server
 const filestoreService = {
   mcpServer: 'https://filestore.mcp.atxp.ai',
-  toolName: 'atxp_filestore',
+  toolName: 'filestore_write',
   description: 'ATXP Filestore MCP server',
-  getArguments: (query: string) => ({ query }),
+  getArguments: (query : string) => ({ query }),
   getResult: (result: any) => result.content[0].text
 };
 
@@ -62,6 +64,7 @@ const databaseService = {
   getArguments: (query: string) => ({ query }),
   getResult: (result: any) => result.content[0].text
 };
+*/
 
 // Routes
 app.get('/api/texts', (req: Request, res: Response) => {
@@ -86,9 +89,12 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   // Create a client using the `atxpClient` function for the ATXP Image MCP Server
   const imageClient = await atxpClient({
     mcpServer: imageService.mcpServer,
-    account: new ATXPAccount(ATXP_CONNECTION_STRING),
+    account: account,
+    allowedAuthorizationServers: ['http://localhost:3001', 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
+    logger: new ConsoleLogger({level: LogLevel.DEBUG}),
   });
 
+  /*
   // Create a client using the `atxpClient` function for the ATXP Filestore MCP Server
   const filestoreClient = await atxpClient({
     mcpServer: filestoreService.mcpServer,
@@ -100,6 +106,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     mcpServer: databaseService.mcpServer,
     account: new ATXPAccount(ATXP_CONNECTION_STRING),
   });
+  */
 
   try {
     // Create an image from the text using the ATXP Image MCP Server
@@ -112,6 +119,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     newText.imageUrl = imageUrl;
     console.log('Result:', imageUrl);
 
+    /*
     // Store the image in the ATXP Filestore MCP Server
     try {
       const result = await filestoreClient.callTool({
@@ -130,6 +138,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
       // Don't exit the process, just log the error
       console.log('Continuing without filestore service...');
     }
+    */
   } catch (error) {
     console.error(`Error with ${imageService.description}:`, error);
     // Don't exit the process, just log the error
