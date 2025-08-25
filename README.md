@@ -10,6 +10,7 @@ When a user navigates to the running web app, they are presented with a text inp
 agent-demo/
 ├── backend/                # Express server
 │   ├── server.ts           # Main server file (TypeScript)
+│   ├── stage.ts            # Progress tracking utilities (TypeScript)
 │   ├── tsconfig.json       # TypeScript configuration
 │   ├── package.json        # Backend dependencies
 │   └── env.example         # Environment variables template
