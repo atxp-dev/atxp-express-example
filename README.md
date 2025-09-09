@@ -71,10 +71,10 @@ agent-demo/
    ```
 
    This will start:
-   - Backend server on `http://localhost:3001`
-   - Frontend development server on `http://localhost:3000`
+   - Backend server on `http://localhost:3001` (configurable with `PORT`)
+   - Frontend development server on `http://localhost:3000` (configurable with `PORT` in frontend)
 
-2. Open your browser and navigate to `http://localhost:3000`
+2. Open your browser and navigate to `http://localhost:3000` (or your configured frontend port)
 
 ### Running Separately
 
@@ -95,16 +95,44 @@ agent-demo/
 
 ## Environment Variables
 
+### Backend Configuration
+
 Create a `.env` file in the `backend/` directory:
 
 ```env
+# Server port configuration
 PORT=3001
+
+# Frontend port (for CORS configuration)
+FRONTEND_PORT=3000
+
 NODE_ENV=development
 
 # Optional: ATXP connection string for image generation and storage
 # If not provided, connection string must be sent via x-atxp-connection-string header
 #ATXP_CONNECTION_STRING=your_connection_string_here
 ```
+
+### Frontend Configuration
+
+Create a `.env` file in the `frontend/` directory:
+
+```env
+# Frontend development server port
+PORT=3000
+
+# Backend server port (for API calls)
+REACT_APP_BACKEND_PORT=3001
+```
+
+### Port Configuration
+
+The application supports configurable ports for both frontend and backend:
+
+- **Backend Port**: Set `PORT` in backend `.env` file (default: 3001)
+- **Frontend Port**: Set `PORT` in frontend `.env` file (default: 3000) 
+- **Backend Port for Frontend**: Set `REACT_APP_BACKEND_PORT` in frontend `.env` file to match your backend port
+- **Frontend Port for Backend**: Set `FRONTEND_PORT` in backend `.env` file to match your frontend port (used for CORS)
 
 ## ATXP Configuration
 
@@ -124,6 +152,12 @@ Send the connection string with each request using the `x-atxp-connection-string
 **Example using curl with header:**
 ```bash
 curl -X POST http://localhost:3001/api/texts \
+  -H "Content-Type: application/json" \
+  -H "x-atxp-connection-string: your_connection_string_here" \
+  -d '{"text": "Generate an image of a sunset"}'
+
+# Or use your configured backend port:
+curl -X POST http://localhost:${YOUR_BACKEND_PORT}/api/texts \
   -H "Content-Type: application/json" \
   -H "x-atxp-connection-string: your_connection_string_here" \
   -d '{"text": "Generate an image of a sunset"}'

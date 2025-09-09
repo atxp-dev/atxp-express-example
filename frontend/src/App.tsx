@@ -141,7 +141,8 @@ function App(): JSX.Element {
   const setupSSE = useCallback(() => {
     console.log('Setting up SSE connection...');
     // Use the full backend URL for SSE connection to avoid proxy issues
-    const eventSource = new EventSource('http://localhost:3001/api/progress');
+    const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
+    const eventSource = new EventSource(`http://localhost:${backendPort}/api/progress`);
 
     eventSource.onopen = (event) => {
       console.log('SSE connection opened:', event);
