@@ -72,13 +72,24 @@ agent-demo/
    npm run dev
    ```
 
-   **Custom ports (inline environment variables):**
-   ```bash
-   # Example: Backend on 4001, Frontend on 4000
-   PORT=4001 FRONTEND_PORT=4000 REACT_APP_BACKEND_PORT=4001 npm run dev
+   **Custom ports (you'll need to run backend and frontend separately):**
    
-   # Example: Frontend on 8080, Backend on default 3001
-   PORT=8080 REACT_APP_BACKEND_PORT=3001 npm run dev
+   For custom ports, it's easier to run the servers separately:
+   ```bash
+   # Terminal 1: Start backend on port 4001
+   cd backend && PORT=4001 FRONTEND_PORT=4000 npm run dev
+   
+   # Terminal 2: Start frontend on port 4000  
+   cd frontend && PORT=4000 REACT_APP_BACKEND_PORT=4001 npm start
+   ```
+   
+   Or use the convenience script with environment variables:
+   ```bash
+   # Set environment variables then run
+   export PORT=4001
+   export FRONTEND_PORT=4000  
+   export REACT_APP_BACKEND_PORT=4001
+   npm run dev
    ```
 
    This will start:
@@ -140,15 +151,24 @@ REACT_APP_BACKEND_PORT=3001
 
 The application supports configurable ports for both frontend and backend. You can configure ports in two ways:
 
-#### Method 1: Inline with npm run dev (No .env files needed)
+#### Method 1: Using export commands (No .env files needed)
 ```bash
-# All three environment variables needed for custom ports:
-PORT=4001 FRONTEND_PORT=4000 REACT_APP_BACKEND_PORT=4001 npm run dev
+# Set environment variables for the session
+export PORT=4001                     # Backend server port
+export FRONTEND_PORT=4000            # Frontend port (for backend CORS config)  
+export REACT_APP_BACKEND_PORT=4001   # Backend port (for frontend API calls)
 
-# Quick reference:
-# PORT - Backend server port
-# FRONTEND_PORT - Frontend port (for backend CORS config)  
-# REACT_APP_BACKEND_PORT - Backend port (for frontend API calls)
+# Then run normally
+npm run dev
+```
+
+#### Alternative: Run servers separately with inline variables
+```bash
+# Terminal 1: Backend
+cd backend && PORT=4001 FRONTEND_PORT=4000 npm run dev
+
+# Terminal 2: Frontend  
+cd frontend && PORT=4000 REACT_APP_BACKEND_PORT=4001 npm start
 ```
 
 #### Method 2: Using .env files

@@ -13,7 +13,12 @@
     "install-all": "npm install && cd backend && npm install && npm run build && cd ../frontend && npm install",
     "start": "cd backend && npm start"
   },
-  "keywords": ["express", "react", "atxp", "agent"],
+  "keywords": [
+    "express",
+    "react",
+    "atxp",
+    "agent"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
