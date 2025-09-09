@@ -47,17 +47,10 @@ let texts: Text[] = [];
 // Helper config object for the ATXP Image MCP Server
 const imageService = {
   mcpServer: 'https://image.mcp.atxp.ai',
-  createImageToolName: 'image_create_image',
   createImageAsyncToolName: 'image_create_image_async',
   getImageAsyncToolName: 'image_get_image_async',
   description: 'ATXP Image MCP server',
   getArguments: (prompt: string) => ({ prompt }),
-  getResult: (result: any) => {
-    // Parse the JSON string from the result
-    const jsonString = result.content[0].text;
-    const parsed = JSON.parse(jsonString);
-    return { status: parsed.status, url: parsed.url };
-  },
   getAsyncCreateResult: (result: any) => {
     const jsonString = result.content[0].text;
     const parsed = JSON.parse(jsonString);
