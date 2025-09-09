@@ -100,6 +100,33 @@ Create a `.env` file in the `backend/` directory:
 ```env
 PORT=3001
 NODE_ENV=development
+
+# Optional: ATXP connection string for image generation and storage
+# If not provided, connection string must be sent via x-atxp-connection-string header
+#ATXP_CONNECTION_STRING=your_connection_string_here
+```
+
+## ATXP Configuration
+
+This application supports two ways to provide your ATXP connection string for image generation and storage:
+
+### Option 1: Environment Variable (Recommended for Development)
+Set the `ATXP_CONNECTION_STRING` environment variable in your `.env` file. This connection string will be used for all requests.
+
+### Option 2: HTTP Header (Recommended for Production/Multi-tenant)
+Send the connection string with each request using the `x-atxp-connection-string` HTTP header. This allows different users to use their own ATXP accounts.
+
+### Priority Order
+1. If `x-atxp-connection-string` header is present, it will be used
+2. If no header is provided, falls back to `ATXP_CONNECTION_STRING` environment variable
+3. If neither is available, the API will return a 400 error
+
+**Example using curl with header:**
+```bash
+curl -X POST http://localhost:3001/api/texts \
+  -H "Content-Type: application/json" \
+  -H "x-atxp-connection-string: your_connection_string_here" \
+  -d '{"text": "Generate an image of a sunset"}'
 ```
 
 ## Development Scripts

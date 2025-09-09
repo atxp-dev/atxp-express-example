@@ -9,6 +9,9 @@ import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate } from '.
 import { atxpClient, ATXPAccount } from '@atxp/client';
 import { ConsoleLogger, LogLevel } from '@atxp/common';
 
+// Import ATXP utility functions
+import { getATXPConnectionString, createATXPAccount } from './atxp-utils';
+
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -16,21 +19,12 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Read the ATXP_CONNECTION_STRING from the environment variables
-const ATXP_CONNECTION_STRING = process.env.ATXP_CONNECTION_STRING;
-if (!ATXP_CONNECTION_STRING) {
-  throw new Error('ATXP_CONNECTION_STRING is not set');
-}
-
-// Create an ATXPAccount object using the ATXP_CONNECTION_STRING
-const account = new ATXPAccount(ATXP_CONNECTION_STRING, {network: 'base'});
-
 // Set up CORS and body parsing middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'x-atxp-connection-string']
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -78,7 +72,7 @@ app.options('/api/progress', (req: Request, res: Response) => {
   res.writeHead(200, {
     'Access-Control-Allow-Origin': 'http://localhost:3000',
     'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type',
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   });
   res.end();
@@ -92,7 +86,7 @@ app.get('/api/progress', (req: Request, res: Response) => {
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': 'http://localhost:3000',
     'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type',
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   });
 
@@ -119,6 +113,18 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 
   if (!text || text.trim() === '') {
     return res.status(400).json({ error: 'Text is required' });
+  }
+
+  // Get ATXP connection string from header or environment variable
+  let connectionString: string;
+  let account: ATXPAccount;
+
+  try {
+    connectionString = getATXPConnectionString(req);
+    account = createATXPAccount(connectionString);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to get ATXP connection string';
+    return res.status(400).json({ error: errorMessage });
   }
 
   const requestId = Date.now().toString();
