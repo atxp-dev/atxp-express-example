@@ -66,37 +66,15 @@ agent-demo/
 ### Development
 
 1. Start both frontend and backend in development mode:
-   
-   **Default ports (3001 backend, 3000 frontend):**
    ```bash
-   npm run dev
-   ```
-
-   **Custom ports (you'll need to run backend and frontend separately):**
-   
-   For custom ports, it's easier to run the servers separately:
-   ```bash
-   # Terminal 1: Start backend on port 4001
-   cd backend && PORT=4001 FRONTEND_PORT=4000 npm run dev
-   
-   # Terminal 2: Start frontend on port 4000  
-   cd frontend && PORT=4000 REACT_APP_BACKEND_PORT=4001 npm start
-   ```
-   
-   Or use the convenience script with environment variables:
-   ```bash
-   # Set environment variables then run
-   export PORT=4001
-   export FRONTEND_PORT=4000  
-   export REACT_APP_BACKEND_PORT=4001
    npm run dev
    ```
 
    This will start:
-   - Backend server on `http://localhost:3001` (or your configured `PORT`)
-   - Frontend development server on `http://localhost:3000` (or your configured frontend `PORT`)
+   - Backend server on `http://localhost:3001`
+   - Frontend development server on `http://localhost:3000`
 
-2. Open your browser and navigate to `http://localhost:3000` (or your configured frontend port)
+2. Open your browser and navigate to `http://localhost:3000`
 
 ### Running Separately
 
@@ -147,35 +125,39 @@ PORT=3000
 REACT_APP_BACKEND_PORT=3001
 ```
 
-### Port Configuration
+### Custom Port Configuration
 
-The application supports configurable ports for both frontend and backend. You can configure ports in two ways:
+By default, the application runs on:
+- Backend: `http://localhost:3001`  
+- Frontend: `http://localhost:3000`
 
-#### Method 1: Using export commands (No .env files needed)
+For custom ports, run the servers separately:
+
+#### Using separate terminals:
 ```bash
-# Set environment variables for the session
-export PORT=4001                     # Backend server port
-export FRONTEND_PORT=4000            # Frontend port (for backend CORS config)  
-export REACT_APP_BACKEND_PORT=4001   # Backend port (for frontend API calls)
-
-# Then run normally
-npm run dev
-```
-
-#### Alternative: Run servers separately with inline variables
-```bash
-# Terminal 1: Backend
+# Terminal 1: Backend on custom port
 cd backend && PORT=4001 FRONTEND_PORT=4000 npm run dev
 
-# Terminal 2: Frontend  
+# Terminal 2: Frontend on custom port  
 cd frontend && PORT=4000 REACT_APP_BACKEND_PORT=4001 npm start
 ```
 
-#### Method 2: Using .env files
-- **Backend Port**: Set `PORT` in backend `.env` file (default: 3001)
-- **Frontend Port**: Set `PORT` in frontend `.env` file (default: 3000) 
-- **Backend Port for Frontend**: Set `REACT_APP_BACKEND_PORT` in frontend `.env` file to match your backend port
-- **Frontend Port for Backend**: Set `FRONTEND_PORT` in backend `.env` file to match your frontend port (used for CORS)
+#### Using .env files:
+Create `.env` files in each directory with your desired ports:
+
+**Backend `.env`:**
+```env
+PORT=4001
+FRONTEND_PORT=4000
+```
+
+**Frontend `.env`:**
+```env
+PORT=4000
+REACT_APP_BACKEND_PORT=4001
+```
+
+Then run: `npm run server` and `npm run client` in separate terminals.
 
 ## ATXP Configuration
 
@@ -195,12 +177,6 @@ Send the connection string with each request using the `x-atxp-connection-string
 **Example using curl with header:**
 ```bash
 curl -X POST http://localhost:3001/api/texts \
-  -H "Content-Type: application/json" \
-  -H "x-atxp-connection-string: your_connection_string_here" \
-  -d '{"text": "Generate an image of a sunset"}'
-
-# Or use your configured backend port:
-curl -X POST http://localhost:${YOUR_BACKEND_PORT}/api/texts \
   -H "Content-Type: application/json" \
   -H "x-atxp-connection-string: your_connection_string_here" \
   -d '{"text": "Generate an image of a sunset"}'
