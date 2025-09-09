@@ -213,7 +213,7 @@ async function pollForTaskCompletion(
         
       } else if (status === 'processing') {
         // Send periodic progress updates
-        if (attempts % 6 === 0) { // Every 30 seconds
+        if (attempts % 2 === 0) { // Every 10 seconds
           sendStageUpdate(requestId, 'processing', `Image generation in progress... (${Math.floor(attempts * 5 / 60)}m ${(attempts * 5) % 60}s)`, 'in-progress');
         }
       }

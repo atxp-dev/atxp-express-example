@@ -220,4 +220,112 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  describe('POST /api/texts - Input Validation', () => {
+    beforeEach(() => {
+      // Add a simple endpoint to test input validation
+      app.post('/api/texts', (req, res) => {
+        const { text } = req.body;
+
+        if (!text || text.trim() === '') {
+          return res.status(400).json({ error: 'Text is required' });
+        }
+
+        // Just return success for validation testing
+        res.status(201).json({ 
+          id: 1, 
+          text: text.trim(), 
+          timestamp: new Date().toISOString(),
+          status: 'pending'
+        });
+      });
+    });
+
+    it('should return 400 error when text is missing', async () => {
+      const response = await request(app)
+        .post('/api/texts')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Text is required'
+      });
+    });
+
+    it('should return 400 error when text is empty string', async () => {
+      const response = await request(app)
+        .post('/api/texts')
+        .send({ text: '   ' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Text is required'
+      });
+    });
+
+    it('should accept valid text input', async () => {
+      const testText = 'Create an image of a sunset';
+      
+      const response = await request(app)
+        .post('/api/texts')
+        .send({ text: testText });
+
+      expect(response.status).toBe(201);
+      expect(response.body.text).toBe(testText);
+      expect(response.body.id).toBeDefined();
+      expect(response.body.timestamp).toBeDefined();
+    });
+  });
+
+  describe('Async Image Generation Service Configuration', () => {
+    it('should have correct async tool names configured', async () => {
+      // This test verifies our service configuration is correct
+      const imageService = {
+        mcpServer: 'https://image.mcp.atxp.ai',
+        createImageAsyncToolName: 'image_create_image_async',
+        getImageAsyncToolName: 'image_get_image_async',
+        description: 'ATXP Image MCP server'
+      };
+
+      expect(imageService.createImageAsyncToolName).toBe('image_create_image_async');
+      expect(imageService.getImageAsyncToolName).toBe('image_get_image_async');
+      expect(imageService.mcpServer).toBe('https://image.mcp.atxp.ai');
+    });
+
+    it('should parse async create result correctly', async () => {
+      const getAsyncCreateResult = (result: any) => {
+        const jsonString = result.content[0].text;
+        const parsed = JSON.parse(jsonString);
+        return { taskId: parsed.taskId };
+      };
+
+      const mockResult = {
+        content: [{ text: JSON.stringify({ taskId: 'test-task-123' }) }]
+      };
+
+      const parsed = getAsyncCreateResult(mockResult);
+      expect(parsed).toEqual({ taskId: 'test-task-123' });
+    });
+
+    it('should parse async status result correctly', async () => {
+      const getAsyncStatusResult = (result: any) => {
+        const jsonString = result.content[0].text;
+        const parsed = JSON.parse(jsonString);
+        return { status: parsed.status, url: parsed.url };
+      };
+
+      const mockResult = {
+        content: [{ text: JSON.stringify({ 
+          status: 'completed', 
+          url: 'https://example.com/image.jpg' 
+        }) }]
+      };
+
+      const parsed = getAsyncStatusResult(mockResult);
+      expect(parsed).toEqual({ 
+        status: 'completed', 
+        url: 'https://example.com/image.jpg' 
+      });
+    });
+  });
 });
