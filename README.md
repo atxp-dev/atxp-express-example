@@ -95,16 +95,69 @@ agent-demo/
 
 ## Environment Variables
 
+### Backend Configuration
+
 Create a `.env` file in the `backend/` directory:
 
 ```env
+# Server port configuration
 PORT=3001
+
+# Frontend port (for CORS configuration)
+FRONTEND_PORT=3000
+
 NODE_ENV=development
 
 # Optional: ATXP connection string for image generation and storage
 # If not provided, connection string must be sent via x-atxp-connection-string header
 #ATXP_CONNECTION_STRING=your_connection_string_here
 ```
+
+### Frontend Configuration
+
+Create a `.env` file in the `frontend/` directory:
+
+```env
+# Frontend development server port
+PORT=3000
+
+# Backend server port (for API calls)
+REACT_APP_BACKEND_PORT=3001
+```
+
+### Custom Port Configuration
+
+By default, the application runs on:
+- Backend: `http://localhost:3001`  
+- Frontend: `http://localhost:3000`
+
+For custom ports, run the servers separately:
+
+#### Using separate terminals:
+```bash
+# Terminal 1: Backend on custom port
+cd backend && PORT=4001 FRONTEND_PORT=4000 npm run dev
+
+# Terminal 2: Frontend on custom port  
+cd frontend && PORT=4000 REACT_APP_BACKEND_PORT=4001 npm start
+```
+
+#### Using .env files:
+Create `.env` files in each directory with your desired ports:
+
+**Backend `.env`:**
+```env
+PORT=4001
+FRONTEND_PORT=4000
+```
+
+**Frontend `.env`:**
+```env
+PORT=4000
+REACT_APP_BACKEND_PORT=4001
+```
+
+Then run: `npm run server` and `npm run client` in separate terminals.
 
 ## ATXP Configuration
 

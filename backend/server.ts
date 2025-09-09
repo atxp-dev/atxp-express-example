@@ -18,10 +18,11 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Create the Express app
 const app = express();
 const PORT = process.env.PORT || 3001;
+const FRONTEND_PORT = process.env.FRONTEND_PORT || 3000;
 
 // Set up CORS and body parsing middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'x-atxp-connection-string']
@@ -79,7 +80,7 @@ const filestoreService = {
 // Handle OPTIONS for SSE endpoint
 app.options('/api/progress', (req: Request, res: Response) => {
   res.writeHead(200, {
-    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
@@ -93,7 +94,7 @@ app.get('/api/progress', (req: Request, res: Response) => {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
@@ -288,7 +289,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     const imageClient = await atxpClient({
       mcpServer: imageService.mcpServer,
       account: account,
-      allowedAuthorizationServers: ['http://localhost:3001', 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
+      allowedAuthorizationServers: [`http://localhost:${PORT}`, 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
       logger: new ConsoleLogger({level: LogLevel.DEBUG}),
     });
 

@@ -32,8 +32,10 @@ describe('API Endpoints', () => {
   beforeEach(() => {
     // Create minimal app for testing connection string logic
     app = express();
+    const FRONTEND_PORT = process.env.FRONTEND_PORT || '3000';
+    const PORT = process.env.PORT || '3001';
     app.use(cors({
-      origin: ['http://localhost:3000', 'http://localhost:3001'],
+      origin: [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'x-atxp-connection-string']
@@ -128,9 +130,10 @@ describe('API Endpoints', () => {
 
   describe('CORS Configuration', () => {
     it('should allow x-atxp-connection-string header in CORS', async () => {
+      const FRONTEND_PORT = process.env.FRONTEND_PORT || '3000';
       const response = await request(app)
         .options('/api/test-connection')
-        .set('Origin', 'http://localhost:3000')
+        .set('Origin', `http://localhost:${FRONTEND_PORT}`)
         .set('Access-Control-Request-Headers', 'x-atxp-connection-string');
 
       expect(response.status).toBe(204);
