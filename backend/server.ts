@@ -13,7 +13,10 @@ import { ConsoleLogger, LogLevel } from '@atxp/common';
 import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '.env') });
+const envPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, '../.env')
+  : path.join(__dirname, '.env');
+dotenv.config({ path: envPath });
 
 // Create the Express app
 const app = express();
