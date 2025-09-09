@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useEffect, useCallback, useRef, FormEvent, ChangeEvent } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -48,6 +48,9 @@ function App(): JSX.Element {
   const [connectionStringInput, setConnectionStringInput] = useState<string>('');
   const [connectionValidating, setConnectionValidating] = useState<boolean>(false);
   const [connectionError, setConnectionError] = useState<string>('');
+
+  // SSE connection ref to handle StrictMode mounting/unmounting
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Load connection string from localStorage on component mount
   useEffect(() => {
@@ -139,9 +142,20 @@ function App(): JSX.Element {
   }, [connectionString]);
 
   const setupSSE = useCallback(() => {
+    // Close existing connection if it exists
+    if (eventSourceRef.current) {
+      console.log('Closing existing SSE connection...');
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     console.log('Setting up SSE connection...');
-    // Use relative URL to work with setupProxy.js
-    const eventSource = new EventSource('/api/progress');
+    // Use direct backend URL since SSE doesn't work well through CRA proxy
+    const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
+    const eventSource = new EventSource(`http://localhost:${backendPort}/api/progress`);
+    eventSourceRef.current = eventSource;
+    
+    console.log('EventSource created, readyState:', eventSource.readyState);
 
     eventSource.onopen = (event) => {
       console.log('SSE connection opened:', event);
@@ -188,32 +202,38 @@ function App(): JSX.Element {
 
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
-      eventSource.close();
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        console.log('Attempting to reconnect SSE...');
-        setupSSE();
-      }, 5000);
-    };
-
-    return () => {
-      console.log('Closing SSE connection...');
-      eventSource.close();
+      if (eventSourceRef.current === eventSource) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+        // Attempt to reconnect after a delay
+        setTimeout(() => {
+          console.log('Attempting to reconnect SSE...');
+          setupSSE();
+        }, 5000);
+      }
     };
   }, []);
 
   // Fetch texts on component mount
   useEffect(() => {
-    console.log('App component mounted, setting up SSE and fetching texts...');
+    console.log('App component mounted, fetching texts...');
     fetchTexts();
-    const cleanup = setupSSE();
+  }, [fetchTexts]);
+
+  // Set up SSE connection separately to handle StrictMode properly
+  useEffect(() => {
+    console.log('Setting up SSE...');
+    setupSSE();
 
     // Cleanup function
     return () => {
       console.log('App component unmounting, cleaning up SSE...');
-      if (cleanup) cleanup();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
-  }, [setupSSE, fetchTexts]);
+  }, [setupSSE]);
 
   // Refresh texts periodically to check for completed images
   useEffect(() => {
