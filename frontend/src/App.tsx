@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -40,20 +40,21 @@ function App(): JSX.Element {
   const [stageHistory, setStageHistory] = useState<Stage[]>([]);
   const [isStageHistoryOpen, setIsStageHistoryOpen] = useState<boolean>(false);
 
-  // Fetch texts on component mount
-  useEffect(() => {
-    console.log('App component mounted, setting up SSE and fetching texts...');
-    fetchTexts();
-    const cleanup = setupSSE();
-
-    // Cleanup function
-    return () => {
-      console.log('App component unmounting, cleaning up SSE...');
-      if (cleanup) cleanup();
-    };
+  const fetchTexts = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const response = await axios.get<{ texts: Text[] }>('/api/texts');
+      setTexts(response.data.texts);
+      setError('');
+    } catch (err) {
+      setError('Failed to fetch texts');
+      console.error('Error fetching texts:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const setupSSE = () => {
+  const setupSSE = useCallback(() => {
     console.log('Setting up SSE connection...');
     // Use the full backend URL for SSE connection to avoid proxy issues
     const eventSource = new EventSource('http://localhost:3001/api/progress');
@@ -115,21 +116,20 @@ function App(): JSX.Element {
       console.log('Closing SSE connection...');
       eventSource.close();
     };
-  };
+  }, []);
 
-  const fetchTexts = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const response = await axios.get<{ texts: Text[] }>('/api/texts');
-      setTexts(response.data.texts);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch texts');
-      console.error('Error fetching texts:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch texts on component mount
+  useEffect(() => {
+    console.log('App component mounted, setting up SSE and fetching texts...');
+    fetchTexts();
+    const cleanup = setupSSE();
+
+    // Cleanup function
+    return () => {
+      console.log('App component unmounting, cleaning up SSE...');
+      if (cleanup) cleanup();
+    };
+  }, [setupSSE, fetchTexts]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
