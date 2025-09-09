@@ -10,7 +10,7 @@ import { atxpClient, ATXPAccount } from '@atxp/client';
 import { ConsoleLogger, LogLevel } from '@atxp/common';
 
 // Import ATXP utility functions
-import { getATXPConnectionString, createATXPAccount } from './atxp-utils';
+import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -121,7 +121,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 
   try {
     connectionString = getATXPConnectionString(req);
-    account = createATXPAccount(connectionString);
+    account = findATXPAccount(connectionString);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to get ATXP connection string';
     return res.status(400).json({ error: errorMessage });
@@ -237,6 +237,23 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Connection validation endpoint
+app.get('/api/validate-connection', (req: Request, res: Response) => {
+  const validationResult = validateATXPConnectionString(req);
+  
+  if (validationResult.isValid) {
+    res.json({ 
+      valid: true, 
+      message: 'Valid ATXP account connection string found' 
+    });
+  } else {
+    res.status(400).json({ 
+      valid: false, 
+      error: validationResult.error 
+    });
+  }
 });
 
 // Serve static files in production

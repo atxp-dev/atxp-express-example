@@ -24,7 +24,7 @@ vi.mock('./stage', () => ({
 }));
 
 // Import after mocking
-import { getATXPConnectionString } from './atxp-utils';
+import { getATXPConnectionString, validateATXPConnectionString } from './atxp-utils';
 
 describe('API Endpoints', () => {
   let app: express.Application;
@@ -135,6 +135,89 @@ describe('API Endpoints', () => {
 
       expect(response.status).toBe(204);
       expect(response.headers['access-control-allow-headers']).toContain('x-atxp-connection-string');
+    });
+  });
+
+  describe('GET /api/validate-connection', () => {
+    beforeEach(() => {
+      // Add the new validation endpoint to our test app
+      app.get('/api/validate-connection', (req, res) => {
+        const validationResult = validateATXPConnectionString(req);
+        
+        if (validationResult.isValid) {
+          res.json({ 
+            valid: true, 
+            message: 'Valid ATXP account connection string found' 
+          });
+        } else {
+          res.status(400).json({ 
+            valid: false, 
+            error: validationResult.error 
+          });
+        }
+      });
+    });
+
+    it('should return valid true with connection string in header', async () => {
+      const response = await request(app)
+        .get('/api/validate-connection')
+        .set('x-atxp-connection-string', 'valid-connection-string');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        valid: true,
+        message: 'Valid ATXP account connection string found'
+      });
+    });
+
+    it('should return valid true with connection string in environment variable', async () => {
+      process.env.ATXP_CONNECTION_STRING = 'env-connection-string';
+
+      const response = await request(app)
+        .get('/api/validate-connection');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        valid: true,
+        message: 'Valid ATXP account connection string found'
+      });
+    });
+
+    it('should return 400 error when no connection string is provided', async () => {
+      const response = await request(app)
+        .get('/api/validate-connection');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        valid: false,
+        error: 'ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable'
+      });
+    });
+
+    it('should prioritize header over environment variable', async () => {
+      process.env.ATXP_CONNECTION_STRING = 'env-connection';
+
+      const response = await request(app)
+        .get('/api/validate-connection')
+        .set('x-atxp-connection-string', 'header-connection');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        valid: true,
+        message: 'Valid ATXP account connection string found'
+      });
+    });
+
+    it('should return 400 error when header is empty and env var is not set', async () => {
+      const response = await request(app)
+        .get('/api/validate-connection')
+        .set('x-atxp-connection-string', '');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        valid: false,
+        error: 'ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable'
+      });
     });
   });
 });
