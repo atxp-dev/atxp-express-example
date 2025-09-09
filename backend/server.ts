@@ -9,33 +9,15 @@ import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate } from '.
 import { atxpClient, ATXPAccount } from '@atxp/client';
 import { ConsoleLogger, LogLevel } from '@atxp/common';
 
+// Import ATXP utility functions
+import { getATXPConnectionString, createATXPAccount } from './atxp-utils';
+
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Create the Express app
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-// Helper function to get ATXP connection string from header or environment variable
-function getATXPConnectionString(req: Request): string {
-  const headerConnectionString = req.headers['x-atxp-connection-string'] as string;
-  const envConnectionString = process.env.ATXP_CONNECTION_STRING;
-  
-  if (headerConnectionString) {
-    return headerConnectionString;
-  }
-  
-  if (envConnectionString) {
-    return envConnectionString;
-  }
-  
-  throw new Error('ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable');
-}
-
-// Helper function to create ATXPAccount object
-function createATXPAccount(connectionString: string): ATXPAccount {
-  return new ATXPAccount(connectionString, {network: 'base'});
-}
 
 // Set up CORS and body parsing middleware
 app.use(cors({
