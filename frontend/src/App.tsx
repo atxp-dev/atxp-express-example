@@ -9,7 +9,9 @@ interface Text {
   timestamp: string;
   imageUrl: string;
   fileName: string;
-  fileId: string;
+  fileId?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  taskId?: string;
 }
 
 // Define the Stage interface for progress tracking
@@ -212,6 +214,23 @@ function App(): JSX.Element {
       if (cleanup) cleanup();
     };
   }, [setupSSE, fetchTexts]);
+
+  // Refresh texts periodically to check for completed images
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if there are pending or processing items
+      const hasProcessingItems = texts.some(text => 
+        text.status === 'pending' || text.status === 'processing'
+      );
+      
+      if (hasProcessingItems) {
+        console.log('Refreshing texts to check for completed images...');
+        fetchTexts();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [texts, fetchTexts]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -501,12 +520,36 @@ function App(): JSX.Element {
               {texts.map((text) => (
                 <div key={text.id} className="text-item">
                   <p className="text-content">{text.text}</p>
+                  
+                  {/* Status indicator for async processing */}
+                  {text.status && (
+                    <div className="text-status">
+                      Status: <span className={`status-${text.status}`}>
+                        {text.status === 'pending' && '⏳ Pending'}
+                        {text.status === 'processing' && '🔄 Processing'}
+                        {text.status === 'completed' && '✅ Completed'}
+                        {text.status === 'failed' && '❌ Failed'}
+                      </span>
+                    </div>
+                  )}
+                  
                   {text.imageUrl && (
                     <figure>
                       <img src={text.imageUrl} alt={text.text} className="text-image" />
                       <figcaption>{text.fileName}</figcaption>
                     </figure>
                   )}
+                  
+                  {/* Show processing message if no image yet */}
+                  {!text.imageUrl && (text.status === 'pending' || text.status === 'processing') && (
+                    <div className="image-placeholder">
+                      <div className="processing-indicator">
+                        <div className="loading-spinner"></div>
+                        <p>Generating image...</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <small className="text-timestamp">
                     Submitted: {formatDate(text.timestamp)}
                   </small>
