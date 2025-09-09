@@ -66,13 +66,24 @@ agent-demo/
 ### Development
 
 1. Start both frontend and backend in development mode:
+   
+   **Default ports (3001 backend, 3000 frontend):**
    ```bash
    npm run dev
    ```
 
+   **Custom ports (inline environment variables):**
+   ```bash
+   # Example: Backend on 4001, Frontend on 4000
+   PORT=4001 FRONTEND_PORT=4000 REACT_APP_BACKEND_PORT=4001 npm run dev
+   
+   # Example: Frontend on 8080, Backend on default 3001
+   PORT=8080 REACT_APP_BACKEND_PORT=3001 npm run dev
+   ```
+
    This will start:
-   - Backend server on `http://localhost:3001` (configurable with `PORT`)
-   - Frontend development server on `http://localhost:3000` (configurable with `PORT` in frontend)
+   - Backend server on `http://localhost:3001` (or your configured `PORT`)
+   - Frontend development server on `http://localhost:3000` (or your configured frontend `PORT`)
 
 2. Open your browser and navigate to `http://localhost:3000` (or your configured frontend port)
 
@@ -127,8 +138,20 @@ REACT_APP_BACKEND_PORT=3001
 
 ### Port Configuration
 
-The application supports configurable ports for both frontend and backend:
+The application supports configurable ports for both frontend and backend. You can configure ports in two ways:
 
+#### Method 1: Inline with npm run dev (No .env files needed)
+```bash
+# All three environment variables needed for custom ports:
+PORT=4001 FRONTEND_PORT=4000 REACT_APP_BACKEND_PORT=4001 npm run dev
+
+# Quick reference:
+# PORT - Backend server port
+# FRONTEND_PORT - Frontend port (for backend CORS config)  
+# REACT_APP_BACKEND_PORT - Backend port (for frontend API calls)
+```
+
+#### Method 2: Using .env files
 - **Backend Port**: Set `PORT` in backend `.env` file (default: 3001)
 - **Frontend Port**: Set `PORT` in frontend `.env` file (default: 3000) 
 - **Backend Port for Frontend**: Set `REACT_APP_BACKEND_PORT` in frontend `.env` file to match your backend port
