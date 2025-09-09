@@ -36,6 +36,9 @@ interface Text {
   timestamp: string;
   imageUrl: string;
   fileName: string;
+  fileId?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  taskId?: string;
 }
 
 // In-memory storage for texts (in production, use a database)
@@ -44,13 +47,19 @@ let texts: Text[] = [];
 // Helper config object for the ATXP Image MCP Server
 const imageService = {
   mcpServer: 'https://image.mcp.atxp.ai',
-  toolName: 'image_create_image',
+  createImageAsyncToolName: 'image_create_image_async',
+  getImageAsyncToolName: 'image_get_image_async',
   description: 'ATXP Image MCP server',
   getArguments: (prompt: string) => ({ prompt }),
-  getResult: (result: any) => {
-    // Parse the JSON string from the result
+  getAsyncCreateResult: (result: any) => {
     const jsonString = result.content[0].text;
-    return JSON.parse(jsonString);
+    const parsed = JSON.parse(jsonString);
+    return { taskId: parsed.taskId };
+  },
+  getAsyncStatusResult: (result: any) => {
+    const jsonString = result.content[0].text;
+    const parsed = JSON.parse(jsonString);
+    return { status: parsed.status, url: parsed.url };
   }
 };
 
@@ -103,6 +112,134 @@ app.get('/api/progress', (req: Request, res: Response) => {
   });
 });
 
+// Background polling function for async image generation
+async function pollForTaskCompletion(
+  imageClient: any, 
+  taskId: string, 
+  textId: number, 
+  requestId: string,
+  account: ATXPAccount
+) {
+  console.log(`Starting polling for task ${taskId}`);
+  let completed = false;
+  let attempts = 0;
+  const maxAttempts = 120; // Poll for up to 10 minutes (5 seconds * 120)
+
+  while (!completed && attempts < maxAttempts) {
+    attempts++;
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    
+    try {
+      const statusResult = await imageClient.callTool({
+        name: imageService.getImageAsyncToolName,
+        arguments: { taskId },
+      });
+      const { status, url } = imageService.getAsyncStatusResult(statusResult);
+      
+      console.log(`Task ${taskId} status (attempt ${attempts}):`, status);
+      
+      // Find the text in our array and update it
+      const textIndex = texts.findIndex(text => text.id === textId);
+      if (textIndex === -1) {
+        console.error(`Text with ID ${textId} not found`);
+        completed = true;
+        continue;
+      }
+
+      if (status === 'completed' && url) {
+        console.log(`Task ${taskId} completed successfully. URL:`, url);
+        
+        // Send stage update for completion
+        sendStageUpdate(requestId, 'image-completed', 'Image generation completed!', 'completed');
+        
+        // Update the text with the completed image
+        texts[textIndex].status = 'completed';
+        texts[textIndex].imageUrl = url;
+
+        // Now try to store in filestore
+        try {
+          // Send stage update for file storage
+          sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
+
+          // Create filestore client
+          const filestoreClient = await atxpClient({
+            mcpServer: filestoreService.mcpServer,
+            account: account,
+          });
+
+          const filestoreResult = await filestoreClient.callTool({
+            name: filestoreService.toolName,
+            arguments: filestoreService.getArguments(url),
+          });
+          
+          const fileResult = filestoreService.getResult(filestoreResult);
+          texts[textIndex].fileName = fileResult.filename;
+          texts[textIndex].imageUrl = fileResult.url; // Use filestore URL instead
+          texts[textIndex].fileId = fileResult.fileId || fileResult.filename;
+
+          console.log('Filestore result:', fileResult);
+
+          // Send final completion stage update
+          sendStageUpdate(requestId, 'completed', 'Image stored successfully! Process completed.', 'final');
+          
+        } catch (filestoreError) {
+          console.error('Error with filestore, using direct image URL:', filestoreError);
+          
+          // Send stage update for filestore error but continue
+          sendSSEUpdate({
+            id: requestId,
+            type: 'stage-update',
+            stage: 'filestore-warning',
+            message: 'Image ready! Filestore unavailable, using direct URL.',
+            timestamp: new Date().toISOString(),
+            status: 'completed'
+          });
+
+          // Send final completion stage update
+          sendStageUpdate(requestId, 'completed', 'Image generation completed!', 'final');
+        }
+
+        completed = true;
+        
+      } else if (status === 'failed') {
+        console.error(`Task ${taskId} failed`);
+        
+        // Send stage update for failure
+        sendStageUpdate(requestId, 'generation-failed', 'Image generation failed.', 'error');
+        
+        // Update the text status
+        texts[textIndex].status = 'failed';
+        completed = true;
+        
+      } else if (status === 'processing') {
+        // Send periodic progress updates
+        if (attempts % 2 === 0) { // Every 10 seconds
+          sendStageUpdate(requestId, 'processing', `Image generation in progress... (${Math.floor(attempts * 5 / 60)}m ${(attempts * 5) % 60}s)`, 'in-progress');
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Error checking status for task ${taskId}:`, error);
+      
+      // On error, wait a bit longer before next attempt
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  }
+
+  if (attempts >= maxAttempts) {
+    console.error(`Task ${taskId} timed out after ${maxAttempts} attempts`);
+    
+    // Find and update the text status to failed
+    const textIndex = texts.findIndex(text => text.id === textId);
+    if (textIndex !== -1) {
+      texts[textIndex].status = 'failed';
+    }
+    
+    // Send timeout error stage update
+    sendStageUpdate(requestId, 'timeout', 'Image generation timed out.', 'error');
+  }
+}
+
 // Routes
 app.get('/api/texts', (req: Request, res: Response) => {
   res.json({ texts });
@@ -128,109 +265,77 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   }
 
   const requestId = Date.now().toString();
+  const textId = Date.now();
 
   // Send initial stage update
-  sendStageUpdate(requestId, 'initializing', 'Starting image generation process...', 'in-progress');
+  sendStageUpdate(requestId, 'initializing', 'Starting async image generation process...', 'in-progress');
 
   let newText: Text = {
-    id: Date.now(),
+    id: textId,
     text: text.trim(),
     timestamp: new Date().toISOString(),
     imageUrl: '',
     fileName: '',
+    status: 'pending',
+    taskId: undefined
   };
 
-  // Send stage update for client creation
-  sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
-
-  // Create a client using the `atxpClient` function for the ATXP Image MCP Server
-  const imageClient = await atxpClient({
-    mcpServer: imageService.mcpServer,
-    account: account,
-    allowedAuthorizationServers: ['http://localhost:3001', 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
-    logger: new ConsoleLogger({level: LogLevel.DEBUG}),
-  });
-
-  // Create a client using the `atxpClient` function for the ATXP Filestore MCP Server
-  const filestoreClient = await atxpClient({
-    mcpServer: filestoreService.mcpServer,
-    account: account,
-  });
-
-  // Send stage update for image generation
-  sendStageUpdate(requestId, 'generating-image', 'Generating image from text using ATXP Image MCP Server...', 'in-progress');
-
   try {
-    // Create an image from the text using the ATXP Image MCP Server
-    const result = await imageClient.callTool({
-      name: imageService.toolName,
+    // Send stage update for client creation
+    sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
+
+    // Create a client using the `atxpClient` function for the ATXP Image MCP Server
+    const imageClient = await atxpClient({
+      mcpServer: imageService.mcpServer,
+      account: account,
+      allowedAuthorizationServers: ['http://localhost:3001', 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
+      logger: new ConsoleLogger({level: LogLevel.DEBUG}),
+    });
+
+    // Send stage update for starting async image generation
+    sendStageUpdate(requestId, 'starting-async-generation', 'Starting async image generation...', 'in-progress');
+
+    // Start async image generation
+    const asyncResult = await imageClient.callTool({
+      name: imageService.createImageAsyncToolName,
       arguments: imageService.getArguments(text),
     });
-    console.log(`${imageService.description} result successful!`);
+    
+    const { taskId } = imageService.getAsyncCreateResult(asyncResult);
+    console.log('Async image generation started with task ID:', taskId);
 
-    // Send stage update for image generation completion
-    sendStageUpdate(requestId, 'image-generated', 'Image generated successfully!', 'completed');
+    // Update the text with task information
+    newText.taskId = taskId;
+    newText.status = 'processing';
 
-    // Process the image result only on success
-    const imageResult = imageService.getResult(result);
-    console.log('Result:', imageResult);
+    // Send stage update for task started
+    sendStageUpdate(requestId, 'task-started', `Async image generation started (Task ID: ${taskId})`, 'in-progress');
 
-    // Send stage update for file storage
-    sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
+    // Add to texts array immediately with pending status
+    texts.push(newText);
 
-    // Store the image in the ATXP Filestore MCP Server
-    try {
-      const result = await filestoreClient.callTool({
-        name: filestoreService.toolName,
-        arguments: filestoreService.getArguments(imageResult.url),
-      });
-      console.log(`${filestoreService.description} result successful!`);
-      const fileResult = filestoreService.getResult(result);
-      newText.fileName = fileResult.filename;
-      newText.imageUrl = fileResult.url;
+    // Start background polling for this task
+    pollForTaskCompletion(imageClient, taskId, textId, requestId, account);
 
-      console.log('Result:', fileResult);
+    // Return immediately with pending status
+    res.status(201).json(newText);
 
-      // Send stage update for completion
-      sendStageUpdate(requestId, 'completed', 'Image stored successfully! Process completed.', 'final');
-
-      texts.push(newText);
-      res.status(201).json(newText);
-    } catch (error) {
-      console.error(`Error with ${filestoreService.description}:`, error);
-      // Send stage update for filestore error
-      sendSSEUpdate({
-        id: requestId,
-        type: 'stage-update',
-        stage: 'filestore-error',
-        message: 'Failed to store image, but continuing without filestore service...',
-        timestamp: new Date().toISOString(),
-        status: 'error'
-      });
-      // Don't exit the process, just log the error
-      console.log('Continuing without filestore service...');
-
-      // Still save the text with the image URL from the image service
-      newText.imageUrl = imageResult.url;
-      texts.push(newText);
-      res.status(201).json(newText);
-    }
   } catch (error) {
-    console.error(`Error with ${imageService.description}:`, error);
+    console.error(`Error starting async image generation:`, error);
 
-    // Send stage update for image generation error
+    // Send stage update for error
     sendSSEUpdate({
       id: requestId,
       type: 'stage-update',
-      stage: 'image-generation-error',
-      message: 'Failed to generate image from text.',
+      stage: 'initialization-error',
+      message: 'Failed to start image generation.',
       timestamp: new Date().toISOString(),
       status: 'error'
     });
 
-    // Return an error response if image processing fails
+    // Return an error response
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.status(500).json({ error: 'Failed to process image', details: errorMessage });
+    res.status(500).json({ error: 'Failed to start image generation', details: errorMessage });
   }
 });
 
