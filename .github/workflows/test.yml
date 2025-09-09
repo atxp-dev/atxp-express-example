@@ -23,7 +23,7 @@ jobs:
       run: npm ci
 
     - name: Install backend dependencies  
-      run: cd backend && npm ci
+      run: cd backend && npm install
 
     - name: Run build
       run: npm run build
