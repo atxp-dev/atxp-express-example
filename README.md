@@ -76,6 +76,17 @@ agent-demo/
 
 2. Open your browser and navigate to `http://localhost:3000`
 
+   **Note**: Development mode uses React StrictMode, which may cause the browser to open twice. For single browser opening behavior, use production mode instead.
+
+### Production Mode
+
+To run in production mode (with optimized builds and single browser opening):
+```bash
+npm run start
+```
+
+This runs the built backend and frontend in production mode without React StrictMode's double-mounting behavior.
+
 ### Running Separately
 
 - **Backend only**: `npm run server`
@@ -184,14 +195,16 @@ curl -X POST http://localhost:3001/api/texts \
 
 ## Development Scripts
 
-- `npm run dev` - Start both frontend and backend in development mode
+- `npm run dev` - Start both frontend and backend in development mode (with hot reloading)
+- `npm run start` - Start both frontend and backend in production mode (single browser opening)
 - `npm run server` - Start only the backend server (TypeScript with hot reload)
+- `npm run server:prod` - Start only the backend server in production mode
 - `npm run client` - Start only the frontend development server
+- `npm run client:prod` - Start only the frontend in production mode
 - `npm run build` - Build both frontend and backend for production
 - `npm run build:backend` - Build only the backend TypeScript code
 - `npm run build:frontend` - Build only the frontend for production
 - `npm run install-all` - Install dependencies for all packages and build backend
-- `npm start` - Start the production server
 
 ## Technologies Used
 
