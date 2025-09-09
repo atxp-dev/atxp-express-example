@@ -9,7 +9,9 @@ interface Text {
   timestamp: string;
   imageUrl: string;
   fileName: string;
-  fileId: string;
+  fileId?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  taskId?: string;
 }
 
 // Define the Stage interface for progress tracking
@@ -39,11 +41,93 @@ function App(): JSX.Element {
   const [currentStage, setCurrentStage] = useState<Stage | null>(null);
   const [stageHistory, setStageHistory] = useState<Stage[]>([]);
   const [isStageHistoryOpen, setIsStageHistoryOpen] = useState<boolean>(false);
+  
+  // ATXP connection string state
+  const [connectionString, setConnectionString] = useState<string>('');
+  const [showConnectionPrompt, setShowConnectionPrompt] = useState<boolean>(false);
+  const [connectionStringInput, setConnectionStringInput] = useState<string>('');
+  const [connectionValidating, setConnectionValidating] = useState<boolean>(false);
+  const [connectionError, setConnectionError] = useState<string>('');
+
+  // Load connection string from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('atxp-connection-string');
+    if (saved) {
+      setConnectionString(saved);
+      setConnectionStringInput(saved);
+    } else {
+      setShowConnectionPrompt(true);
+    }
+  }, []);
+
+  // Validate connection string format (should be a URL)
+  const isValidConnectionStringFormat = (connectionString: string): boolean => {
+    try {
+      new URL(connectionString);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Validate connection string with backend
+  const validateConnection = useCallback(async (testConnectionString: string): Promise<boolean> => {
+    if (!testConnectionString.trim()) {
+      setConnectionError('Connection string is required');
+      return false;
+    }
+
+    // First validate URL format
+    if (!isValidConnectionStringFormat(testConnectionString)) {
+      setConnectionError('Connection string must be a valid URL (e.g., https://accounts.atxp.ai/connection-string/...)');
+      return false;
+    }
+
+    try {
+      setConnectionValidating(true);
+      setConnectionError('');
+      
+      const response = await axios.get('/api/validate-connection', {
+        headers: {
+          'x-atxp-connection-string': testConnectionString
+        }
+      });
+      
+      return response.data.valid;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to validate connection string';
+      setConnectionError(errorMessage);
+      return false;
+    } finally {
+      setConnectionValidating(false);
+    }
+  }, []);
+
+  // Save and set connection string
+  const saveConnectionString = useCallback(async () => {
+    const isValid = await validateConnection(connectionStringInput);
+    if (isValid) {
+      setConnectionString(connectionStringInput);
+      localStorage.setItem('atxp-connection-string', connectionStringInput);
+      setShowConnectionPrompt(false);
+      setConnectionError('');
+    }
+  }, [connectionStringInput, validateConnection]);
+
+  // Clear connection string
+  const clearConnectionString = useCallback(() => {
+    setConnectionString('');
+    setConnectionStringInput('');
+    localStorage.removeItem('atxp-connection-string');
+    setShowConnectionPrompt(true);
+    setConnectionError('');
+  }, []);
 
   const fetchTexts = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await axios.get<{ texts: Text[] }>('/api/texts');
+      const headers = connectionString ? { 'x-atxp-connection-string': connectionString } : {};
+      const response = await axios.get<{ texts: Text[] }>('/api/texts', { headers });
       setTexts(response.data.texts);
       setError('');
     } catch (err) {
@@ -52,7 +136,7 @@ function App(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [connectionString]);
 
   const setupSSE = useCallback(() => {
     console.log('Setting up SSE connection...');
@@ -131,11 +215,34 @@ function App(): JSX.Element {
     };
   }, [setupSSE, fetchTexts]);
 
+  // Refresh texts periodically to check for completed images
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if there are pending or processing items
+      const hasProcessingItems = texts.some(text => 
+        text.status === 'pending' || text.status === 'processing'
+      );
+      
+      if (hasProcessingItems) {
+        console.log('Refreshing texts to check for completed images...');
+        fetchTexts();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [texts, fetchTexts]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     if (!inputText.trim()) {
       setError('Please enter some text');
+      return;
+    }
+
+    if (!connectionString.trim()) {
+      setError('Please provide a valid ATXP connection string');
+      setShowConnectionPrompt(true);
       return;
     }
 
@@ -145,12 +252,23 @@ function App(): JSX.Element {
       setStageHistory([]); // Clear previous stage history
       setCurrentStage(null); // Clear any previous current stage
 
-      const response = await axios.post<Text>('/api/texts', { text: inputText });
+      const response = await axios.post<Text>('/api/texts', 
+        { text: inputText },
+        { 
+          headers: { 'x-atxp-connection-string': connectionString }
+        }
+      );
       setTexts(prevTexts => [...prevTexts, response.data]);
       setInputText('');
-    } catch (err) {
-      setError('Failed to submit text');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to submit text';
+      setError(errorMessage);
       console.error('Error submitting text:', err);
+      
+      // If error is related to connection string, show the prompt
+      if (err.response?.status === 400 && errorMessage.includes('connection string')) {
+        setShowConnectionPrompt(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -199,11 +317,120 @@ function App(): JSX.Element {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>ATXP Agent Demo</h1>
-        <p>Use an ATXP agent to create an image from text and share it with the world.</p>
+        <div className="header-content">
+          <div className="logo-container">
+            <img 
+              src="/logo_with_tagline.png" 
+              alt="ATXP - Agent Transaction Protocol" 
+              className="logo-image"
+            />
+          </div>
+          <div className="header-subtitle">
+            <p>Use an ATXP agent to create an image from text and share it with the world.</p>
+          </div>
+        </div>
+        
+        {/* Connection String Status */}
+        {connectionString && !showConnectionPrompt && (
+          <div className="connection-status">
+            <span className="connection-indicator">✅ Connected</span>
+            <button 
+              className="clear-connection-button"
+              onClick={clearConnectionString}
+            >
+              Clear Connection
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="App-main">
+        {/* Connection Setup Screen */}
+        {showConnectionPrompt && (
+          <div className="connection-setup-layout">
+            <div className="connection-setup-main">
+              <h2>Welcome to the ATXP Agent Demo!</h2>
+              <p>
+                To get started with this demo, you'll need an ATXP connection string. 
+                This allows the app to securely access ATXP services and generate images from your text.
+              </p>
+              
+              <div className="connection-guide">
+                <h3>How to get your connection string:</h3>
+                <ol>
+                  <li>
+                    Go to <a 
+                      href="https://accounts.atxp.ai" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="connection-link"
+                    >
+                      https://accounts.atxp.ai
+                    </a>
+                  </li>
+                  <li>Log in to your ATXP account (or create one if you don't have one yet)</li>
+                  <li>Find and copy your account connection string</li>
+                  <li>Paste it in the field below</li>
+                </ol>
+              </div>
+              
+              <div className="connection-form">
+                <label htmlFor="connection-input">Your ATXP Connection String:</label>
+                <input
+                  id="connection-input"
+                  type="text"
+                  value={connectionStringInput}
+                  onChange={(e) => setConnectionStringInput(e.target.value)}
+                  placeholder="https://accounts.atxp.ai/connection-string/..."
+                  className="connection-input"
+                  disabled={connectionValidating}
+                />
+                <small className="input-help">
+                  This should be a URL starting with https://accounts.atxp.ai/
+                </small>
+                
+                {connectionError && (
+                  <div className="connection-error">{connectionError}</div>
+                )}
+                
+                <div className="connection-buttons">
+                  <button
+                    onClick={saveConnectionString}
+                    disabled={!connectionStringInput.trim() || connectionValidating}
+                    className="save-connection-button"
+                  >
+                    {connectionValidating ? 'Validating...' : 'Connect & Start Demo'}
+                  </button>
+                  
+                  {connectionString && (
+                    <button
+                      onClick={() => setShowConnectionPrompt(false)}
+                      className="cancel-connection-button"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="connection-sidebar">
+              <div className="connection-help">
+                <p><strong>Need help?</strong></p>
+                <ul>
+                  <li>🔗 Your connection string is a secure URL that identifies your ATXP account</li>
+                  <li>🔒 It's stored locally in your browser and never shared with third parties</li>
+                  <li>📧 Don't have an ATXP account? Contact support or create one at accounts.atxp.ai</li>
+                  <li>⚡ This demo showcases ATXP's AI image generation capabilities</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main App Content - only show when connected */}
+        {!showConnectionPrompt && (
+          <>
         <form onSubmit={handleSubmit} className="text-form">
           <div className="input-group">
             <input
@@ -293,12 +520,36 @@ function App(): JSX.Element {
               {texts.map((text) => (
                 <div key={text.id} className="text-item">
                   <p className="text-content">{text.text}</p>
+                  
+                  {/* Status indicator for async processing */}
+                  {text.status && (
+                    <div className="text-status">
+                      Status: <span className={`status-${text.status}`}>
+                        {text.status === 'pending' && '⏳ Pending'}
+                        {text.status === 'processing' && '🔄 Processing'}
+                        {text.status === 'completed' && '✅ Completed'}
+                        {text.status === 'failed' && '❌ Failed'}
+                      </span>
+                    </div>
+                  )}
+                  
                   {text.imageUrl && (
                     <figure>
                       <img src={text.imageUrl} alt={text.text} className="text-image" />
                       <figcaption>{text.fileName}</figcaption>
                     </figure>
                   )}
+                  
+                  {/* Show processing message if no image yet */}
+                  {!text.imageUrl && (text.status === 'pending' || text.status === 'processing') && (
+                    <div className="image-placeholder">
+                      <div className="processing-indicator">
+                        <div className="loading-spinner"></div>
+                        <p>Generating image...</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <small className="text-timestamp">
                     Submitted: {formatDate(text.timestamp)}
                   </small>
@@ -312,6 +563,8 @@ function App(): JSX.Element {
             </div>
           )}
         </div>
+        </>
+        )}
       </main>
     </div>
   );
