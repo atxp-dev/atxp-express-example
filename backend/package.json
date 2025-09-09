@@ -4,7 +4,7 @@
   "description": "Express backend for agent-demo",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "NODE_ENV=production node dist/server.js",
     "dev": "nodemon --exec ts-node server.ts",
     "build": "tsc",
     "test": "vitest run",
