@@ -6,7 +6,7 @@ vi.mock('@atxp/client', () => ({
   ATXPAccount: vi.fn().mockImplementation(() => ({ accountId: 'test-account' }))
 }));
 
-import { getATXPConnectionString, createATXPAccount } from './atxp-utils';
+import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
 import { ATXPAccount } from '@atxp/client';
 
 describe('ATXP Utils', () => {
@@ -102,7 +102,7 @@ describe('ATXP Utils', () => {
     });
   });
 
-  describe('createATXPAccount', () => {
+  describe('findATXPAccount', () => {
     beforeEach(() => {
       vi.clearAllMocks();
     });
@@ -110,7 +110,7 @@ describe('ATXP Utils', () => {
     it('should call ATXPAccount constructor with correct parameters', () => {
       const connectionString = 'test-connection-string';
       
-      const result = createATXPAccount(connectionString);
+      const result = findATXPAccount(connectionString);
       
       expect(ATXPAccount).toHaveBeenCalledWith(connectionString, { network: 'base' });
       expect(result).toEqual({ accountId: 'test-account' });
@@ -119,9 +119,80 @@ describe('ATXP Utils', () => {
     it('should return the ATXPAccount instance', () => {
       const connectionString = 'any-connection-string';
       
-      const result = createATXPAccount(connectionString);
+      const result = findATXPAccount(connectionString);
       
       expect(result).toEqual({ accountId: 'test-account' });
+    });
+  });
+
+  describe('validateATXPConnectionString', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      delete process.env.ATXP_CONNECTION_STRING;
+    });
+
+    it('should return valid true when connection string is available and account creation succeeds', () => {
+      const mockReq = {
+        headers: {
+          'x-atxp-connection-string': 'valid-connection-string'
+        }
+      } as Partial<Request> as Request;
+
+      const result = validateATXPConnectionString(mockReq);
+
+      expect(result).toEqual({
+        isValid: true
+      });
+      expect(ATXPAccount).toHaveBeenCalledWith('valid-connection-string', { network: 'base' });
+    });
+
+    it('should return valid true when using environment variable', () => {
+      process.env.ATXP_CONNECTION_STRING = 'env-connection-string';
+      
+      const mockReq = {
+        headers: {}
+      } as Partial<Request> as Request;
+
+      const result = validateATXPConnectionString(mockReq);
+
+      expect(result).toEqual({
+        isValid: true
+      });
+      expect(ATXPAccount).toHaveBeenCalledWith('env-connection-string', { network: 'base' });
+    });
+
+    it('should return valid false when no connection string is available', () => {
+      const mockReq = {
+        headers: {}
+      } as Partial<Request> as Request;
+
+      const result = validateATXPConnectionString(mockReq);
+
+      expect(result).toEqual({
+        isValid: false,
+        error: 'ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable'
+      });
+      expect(ATXPAccount).not.toHaveBeenCalled();
+    });
+
+    it('should return valid false when ATXPAccount constructor throws an error', () => {
+      const mockReq = {
+        headers: {
+          'x-atxp-connection-string': 'invalid-connection-string'
+        }
+      } as Partial<Request> as Request;
+
+      // Mock ATXPAccount to throw an error for this test
+      (ATXPAccount as any).mockImplementationOnce(() => {
+        throw new Error('Invalid connection string format');
+      });
+
+      const result = validateATXPConnectionString(mockReq);
+
+      expect(result).toEqual({
+        isValid: false,
+        error: 'Invalid connection string format'
+      });
     });
   });
 });
