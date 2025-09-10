@@ -30,12 +30,34 @@ const PORT = process.env.PORT || 3001;
 const FRONTEND_PORT = process.env.FRONTEND_PORT || 3000;
 
 // Set up CORS and body parsing middleware
-app.use(cors({
-  origin: [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`],
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow localhost
+    if (process.env.NODE_ENV !== 'production') {
+      const allowedOrigins = [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`];
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+    }
+    
+    // In production, allow any origin since we're serving both API and frontend from same domain
+    // This is safe because in production, the frontend is served by the same Express server
+    if (process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
+    
+    // For development, reject unknown origins
+    callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'x-atxp-connection-string']
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -88,8 +110,9 @@ const filestoreService = {
 
 // Handle OPTIONS for SSE endpoint
 app.options('/api/progress', (req: Request, res: Response) => {
+  const origin = req.headers.origin || req.headers.host || `http://localhost:${FRONTEND_PORT}`;
   res.writeHead(200, {
-    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
@@ -99,11 +122,12 @@ app.options('/api/progress', (req: Request, res: Response) => {
 
 // SSE endpoint for progress updates
 app.get('/api/progress', (req: Request, res: Response) => {
+  const origin = req.headers.origin || req.headers.host || `http://localhost:${FRONTEND_PORT}`;
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
