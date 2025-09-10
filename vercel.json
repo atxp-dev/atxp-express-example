@@ -1,24 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/server.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb",
-        "runtime": "nodejs20.x"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/backend/server.ts"
-    }
-  ],
   "installCommand": "npm run install-all",
   "buildCommand": "npm run build && cp -r frontend/build backend/",
-  "env": {
-    "NODE_ENV": "production"
+  "functions": {
+    "backend/dist/server.js": {
+      "runtime": "nodejs20.x"
+    }
   }
 }
