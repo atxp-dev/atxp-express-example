@@ -30,11 +30,11 @@ agent-demo/
 
 ## Features
 
-- **Express Backend**: RESTful API with endpoints for text submission and retrieval
+- **Full-Stack Express**: Single Express server serves both API endpoints and React frontend
 - **React Frontend**: Modern, responsive UI with real-time updates
 - **Development Mode**: Hot reloading for both frontend and backend
-- **Production Ready**: Build system for deployment
-- **CORS Enabled**: Cross-origin requests supported
+- **Production Ready**: Single-service deployment with built-in static file serving
+- **CORS Enabled**: Cross-origin requests supported for development
 - **Error Handling**: Comprehensive error handling and user feedback
 
 ## API Endpoints
@@ -90,14 +90,15 @@ After deploying, you'll need to provide your ATXP connection string through the 
 
 ### Production Mode
 
-To run in production mode (with optimized builds and single browser opening):
+To run in production mode (single server serving both API and frontend):
 ```bash
-npm run start
+npm run build
+npm start
 ```
 
-This runs the built backend and frontend in production mode without React StrictMode's double-mounting behavior.
+This builds both components and starts the Express server in production mode, serving both the API endpoints and the React frontend from a single service.
 
-### Running Separately
+### Running Separately (Development Only)
 
 - **Backend only**: `npm run server`
 - **Frontend only**: `npm run client`
@@ -114,6 +115,12 @@ This runs the built backend and frontend in production mode without React Strict
    npm start
    ```
 
+   The server will start on the configured port (default: 3001) and serve both:
+   - API endpoints at `/api/*`
+   - React frontend at all other routes
+
+**Note**: Always run `npm run build` before `npm start` to ensure you have the latest production builds.
+
 ## Environment Variables
 
 ### Backend Configuration
@@ -124,7 +131,7 @@ Create a `.env` file in the `backend/` directory:
 # Server port configuration
 PORT=3001
 
-# Frontend port (for CORS configuration)
+# Frontend port (for CORS configuration in development)
 FRONTEND_PORT=3000
 
 NODE_ENV=development
@@ -134,17 +141,19 @@ NODE_ENV=development
 #ATXP_CONNECTION_STRING=your_connection_string_here
 ```
 
-### Frontend Configuration
+### Frontend Configuration (Development Only)
 
-Create a `.env` file in the `frontend/` directory:
+For development mode, create a `.env` file in the `frontend/` directory:
 
 ```env
 # Frontend development server port
 PORT=3000
 
-# Backend server port (for API calls)
+# Backend server port (for API calls during development)
 REACT_APP_BACKEND_PORT=3001
 ```
+
+**Note**: In production mode, the frontend is served by the Express server, so frontend environment variables are not needed.
 
 ### Custom Port Configuration
 
