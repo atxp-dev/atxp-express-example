@@ -16,7 +16,7 @@ vi.mock('@atxp/common', () => ({
 }));
 
 // Mock the stage module
-vi.mock('./stage', () => ({
+vi.mock('./stage.js', () => ({
   sendSSEUpdate: vi.fn(),
   addSSEClient: vi.fn(),
   removeSSEClient: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('./stage', () => ({
 }));
 
 // Import after mocking
-import { getATXPConnectionString, validateATXPConnectionString } from './atxp-utils';
+import { getATXPConnectionString, validateATXPConnectionString } from './atxp-utils.js';
 
 describe('API Endpoints', () => {
   let app: express.Application;
