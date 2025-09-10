@@ -443,13 +443,8 @@ function getStaticPath() {
     path.join(__dirname, '../build')
   ];
 
-  console.log('__dirname:', __dirname);
-  console.log('Looking for frontend build in candidates:', candidates);
-
   for (const candidate of candidates) {
-    console.log(`Checking: ${candidate}, exists: ${fs.existsSync(candidate)}`);
     if (fs.existsSync(candidate)) {
-      console.log(`Found frontend build at: ${candidate}`);
       return candidate;
     }
   }
@@ -457,14 +452,12 @@ function getStaticPath() {
   // List contents of current directory for debugging
   try {
     const currentDirContents = fs.readdirSync(__dirname);
-    console.log(`Contents of __dirname (${__dirname}):`, currentDirContents);
     
     // Also check if build directory exists but is empty
     const buildPath = path.join(__dirname, './build');
     if (fs.existsSync(buildPath)) {
       try {
         const buildContents = fs.readdirSync(buildPath);
-        console.log(`Contents of build directory (${buildPath}):`, buildContents);
       } catch (error) {
         console.log('Could not read build directory contents:', error);
       }
