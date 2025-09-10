@@ -15,7 +15,9 @@
     "sourceMap": true
   },
   "include": [
-    "*.ts"
+    "server.ts",
+    "stage.ts", 
+    "atxp-utils.ts"
   ],
   "exclude": [
     "node_modules",
