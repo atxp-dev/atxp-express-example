@@ -7,7 +7,7 @@
     "start": "NODE_ENV=production node dist/server.js",
     "dev": "nodemon --exec ts-node server.ts",
     "build": "tsc",
-    "build:worker": "tsc && cp dist/worker.js dist/worker.js",
+    "build:worker": "echo 'Cloudflare Workers will build directly from TypeScript source'",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui"
