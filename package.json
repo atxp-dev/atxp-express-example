@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "start": "npm run build && npm run server:prod",
+    "start": "npm run server:prod",
     "server": "cd backend && npm run dev",
     "server:prod": "cd backend && npm start",
     "client": "cd frontend && npm start",

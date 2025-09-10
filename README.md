@@ -92,10 +92,11 @@ After deploying, you'll need to provide your ATXP connection string through the 
 
 To run in production mode (single server serving both API and frontend):
 ```bash
-npm run start
+npm run build
+npm start
 ```
 
-This builds and starts the Express server in production mode, serving both the API endpoints and the React frontend from a single service.
+This builds both components and starts the Express server in production mode, serving both the API endpoints and the React frontend from a single service.
 
 ### Running Separately (Development Only)
 
@@ -117,6 +118,8 @@ This builds and starts the Express server in production mode, serving both the A
    The server will start on the configured port (default: 3001) and serve both:
    - API endpoints at `/api/*`
    - React frontend at all other routes
+
+**Note**: Always run `npm run build` before `npm start` to ensure you have the latest production builds.
 
 ## Environment Variables
 
