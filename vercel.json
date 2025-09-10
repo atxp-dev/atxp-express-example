@@ -2,9 +2,10 @@
   "version": 2,
   "installCommand": "npm run install-all",
   "buildCommand": "npm run build && cp -r frontend/build backend/",
-  "functions": {
-    "backend/dist/server.js": {
-      "runtime": "@vercel/node"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/backend/dist/server.js"
     }
-  }
+  ]
 }
