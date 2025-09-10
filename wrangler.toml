@@ -1,0 +1,26 @@
+# Cloudflare Workers configuration for the backend
+name = "atxp-express-backend"
+compatibility_date = "2023-10-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Main worker script will be generated from the Express server
+main = "backend/dist/worker.js"
+
+# Node.js compatibility for Express and other Node.js packages
+node_compat = true
+
+# Environment variables (users will set their own ATXP_CONNECTION_STRING)
+[env.production.vars]
+NODE_ENV = "production"
+FRONTEND_PORT = "3000"
+
+# Build configuration
+[build]
+command = "cd backend && npm install && npm run build && npm run build:worker"
+cwd = "."
+
+# Routes configuration to handle API endpoints
+[[routes]]
+pattern = "*/api/*"
+zone_name = "your-domain.com"  # User will update this
+custom_domain = true
