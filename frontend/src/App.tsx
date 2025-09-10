@@ -31,6 +31,15 @@ interface SSEMessage {
   message?: string;
   timestamp?: string;
   status?: 'pending' | 'in-progress' | 'completed' | 'error' | 'final';
+  payment?: {
+    accountId: string;
+    resourceUrl: string;
+    resourceName: string;
+    network: string;
+    currency: string;
+    amount: string;
+    iss: string;
+  };
 }
 
 function App(): JSX.Element {
@@ -41,6 +50,8 @@ function App(): JSX.Element {
   const [currentStage, setCurrentStage] = useState<Stage | null>(null);
   const [stageHistory, setStageHistory] = useState<Stage[]>([]);
   const [isStageHistoryOpen, setIsStageHistoryOpen] = useState<boolean>(false);
+  const [payments, setPayments] = useState<NonNullable<SSEMessage['payment']>[]>([]);
+  const [isPaymentsOpen, setIsPaymentsOpen] = useState<boolean>(false);
   
   // ATXP connection string state
   const [connectionString, setConnectionString] = useState<string>('');
@@ -192,6 +203,9 @@ function App(): JSX.Element {
               }, 3000);
             }
           }
+        } else if (data.type === 'payment' && data.payment) {
+          console.log('Payment received:', data.payment);
+          setPayments(prev => [...prev, data.payment!]);
         } else if (data.type === 'connected') {
           console.log('SSE connection established:', data.message);
         }
@@ -271,6 +285,7 @@ function App(): JSX.Element {
       setError('');
       setStageHistory([]); // Clear previous stage history
       setCurrentStage(null); // Clear any previous current stage
+      setPayments([]); // Clear previous payments
 
       const response = await axios.post<Text>('/api/texts', 
         { text: inputText },
@@ -332,6 +347,10 @@ function App(): JSX.Element {
 
   const toggleStageHistory = () => {
     setIsStageHistoryOpen(!isStageHistoryOpen);
+  };
+
+  const togglePayments = () => {
+    setIsPaymentsOpen(!isPaymentsOpen);
   };
 
   return (
@@ -522,6 +541,41 @@ function App(): JSX.Element {
                     <small className="stage-timestamp">
                       {formatDate(stage.timestamp)}
                     </small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payments Accordion */}
+        {payments.length > 0 && (
+          <div className="payments-accordion">
+            <button
+              className="accordion-header"
+              onClick={togglePayments}
+              aria-expanded={isPaymentsOpen}
+            >
+              <h3>💰 Payments Made ({payments.length})</h3>
+              <span className="accordion-icon">
+                {isPaymentsOpen ? '▼' : '▶'}
+              </span>
+            </button>
+            <div className={`accordion-content ${isPaymentsOpen ? 'open' : ''}`}>
+              <div className="payments-list">
+                {payments.map((payment, index) => (
+                  <div key={index} className="payment-item">
+                    <div className="payment-header">
+                      <span className="payment-icon">💳</span>
+                      <span className="payment-service">{payment.resourceName}</span>
+                      <span className="payment-amount">{payment.amount} {payment.currency.toUpperCase()}</span>
+                    </div>
+                    <div className="payment-details">
+                      <p><strong>Service:</strong> {payment.resourceUrl}</p>
+                      <p><strong>Network:</strong> {payment.network}</p>
+                      <p><strong>Account:</strong> {payment.accountId}</p>
+                      <p><strong>Provider:</strong> {payment.iss}</p>
+                    </div>
                   </div>
                 ))}
               </div>

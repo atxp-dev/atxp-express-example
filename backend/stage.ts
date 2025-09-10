@@ -58,3 +58,20 @@ export const sendStageUpdate = (
     ...stageUpdate
   });
 };
+
+// Function to send payment notification via SSE
+export const sendPaymentUpdate = (payment: {
+  accountId: string;
+  resourceUrl: string;
+  resourceName: string;
+  network: string;
+  currency: string;
+  amount: string;
+  iss: string;
+}) => {
+  sendSSEUpdate({
+    type: 'payment',
+    payment,
+    timestamp: new Date().toISOString()
+  });
+};
