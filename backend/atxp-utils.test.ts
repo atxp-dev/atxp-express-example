@@ -134,7 +134,7 @@ describe('ATXP Utils', () => {
       delete process.env.ATXP_CONNECTION_STRING;
     });
 
-    it('should return valid true when connection string is available and account creation succeeds', async () => {
+    it('should return valid true when connection string is available and account creation succeeds', () => {
       const mockReq = {
         headers: {
           'x-atxp-connection-string': 'valid-connection-string'
@@ -146,9 +146,10 @@ describe('ATXP Utils', () => {
       expect(result).toEqual({
         isValid: true
       });
+      expect(ATXPAccount).toHaveBeenCalledWith('valid-connection-string', { network: 'base' });
     });
 
-    it('should return valid true when using environment variable', async () => {
+    it('should return valid true when using environment variable', () => {
       process.env.ATXP_CONNECTION_STRING = 'env-connection-string';
       
       const mockReq = {
@@ -160,9 +161,10 @@ describe('ATXP Utils', () => {
       expect(result).toEqual({
         isValid: true
       });
+      expect(ATXPAccount).toHaveBeenCalledWith('env-connection-string', { network: 'base' });
     });
 
-    it('should return valid false when no connection string is available', async () => {
+    it('should return valid false when no connection string is available', () => {
       const mockReq = {
         headers: {}
       } as Partial<Request> as Request;
@@ -173,6 +175,7 @@ describe('ATXP Utils', () => {
         isValid: false,
         error: 'ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable'
       });
+      expect(ATXPAccount).not.toHaveBeenCalled();
     });
 
     it('should return valid false when ATXPAccount constructor throws an error', () => {
