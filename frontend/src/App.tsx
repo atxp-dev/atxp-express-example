@@ -175,7 +175,7 @@ function App(): JSX.Element {
     } else {
       // Production/deployed: use relative URL (same origin)
       sseUrl = '/api/progress';
-      }
+    }
     
     const eventSource = new EventSource(sseUrl);
     eventSourceRef.current = eventSource;
