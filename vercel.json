@@ -2,11 +2,10 @@
   "version": 2,
   "installCommand": "npm run install-all",
   "buildCommand": "npm run build && cp -r frontend/build backend/",
-  "outputDirectory": "backend",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/dist/server.js"
+      "destination": "/api"
     }
   ]
 }
