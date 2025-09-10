@@ -367,6 +367,20 @@ function App(): JSX.Element {
           <div className="header-subtitle">
             <p>Use an ATXP agent to create an image from text and share it with the world.</p>
           </div>
+          <div className="deploy-buttons">
+            <a
+              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frobdimarco%2Fatxp-express-example&env=ATXP_CONNECTION_STRING&envDescription=Your%20ATXP%20connection%20string%20from%20accounts.atxp.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="deploy-button vercel"
+            >
+              <img
+                src="https://vercel.com/button"
+                alt="Deploy with Vercel"
+                height="32"
+              />
+            </a>
+          </div>
         </div>
         
         {/* Connection String Status */}

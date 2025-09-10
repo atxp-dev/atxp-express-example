@@ -59,6 +59,31 @@ body {
   margin: 0;
 }
 
+.deploy-buttons {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.deploy-button {
+  display: inline-block;
+  transition: transform 0.15s ease-in-out, opacity 0.15s ease-in-out;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.deploy-button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.deploy-button img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
 .connection-status {
   display: flex;
   align-items: center;
@@ -101,6 +126,10 @@ body {
 
   .header-subtitle {
     margin-left: 0;
+  }
+
+  .deploy-buttons {
+    justify-content: center;
   }
 
   .connection-status {
