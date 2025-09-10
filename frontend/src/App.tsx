@@ -161,9 +161,19 @@ function App(): JSX.Element {
     }
 
     console.log('Setting up SSE connection...');
-    // Use direct backend URL since SSE doesn't work well through CRA proxy
-    const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
-    const eventSource = new EventSource(`http://localhost:${backendPort}/api/progress`);
+    
+    // In production, use relative URL since frontend and backend are served from same domain
+    // In development, use direct backend URL since SSE doesn't work well through CRA proxy
+    let sseUrl: string;
+    if (process.env.NODE_ENV === 'production') {
+      sseUrl = '/api/progress';
+    } else {
+      const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
+      sseUrl = `http://localhost:${backendPort}/api/progress`;
+    }
+    
+    console.log('Connecting to SSE endpoint:', sseUrl);
+    const eventSource = new EventSource(sseUrl);
     eventSourceRef.current = eventSource;
     
     console.log('EventSource created, readyState:', eventSource.readyState);
