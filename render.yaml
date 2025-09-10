@@ -1,7 +1,7 @@
 services:
   - type: web
     name: atxp-express-backend
-    env: node
+    runtime: node
     plan: free
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
@@ -16,13 +16,14 @@ services:
 
   - type: web
     name: atxp-express-frontend
-    env: static
-    plan: free
+    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/build
     routes:
       - type: rewrite
         source: /api/*
+        # TODO: Replace 'atxp-express-backend' with your actual backend service name
+        # The backend service URL will be: https://YOUR-BACKEND-SERVICE-NAME.onrender.com
         destination: https://atxp-express-backend.onrender.com/api/*
       - type: rewrite
         source: /*
