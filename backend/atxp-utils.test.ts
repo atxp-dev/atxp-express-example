@@ -6,13 +6,15 @@ vi.mock('@atxp/client', () => ({
   ATXPAccount: vi.fn().mockImplementation(() => ({ accountId: 'test-account' }))
 }));
 
-import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
+import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils.js';
 import { ATXPAccount } from '@atxp/client';
 
 describe('ATXP Utils', () => {
   beforeEach(() => {
     // Clear environment variables before each test
     delete process.env.ATXP_CONNECTION_STRING;
+    // Reset mocks
+    vi.clearAllMocks();
   });
 
   describe('getATXPConnectionString', () => {
@@ -121,6 +123,7 @@ describe('ATXP Utils', () => {
       
       const result = findATXPAccount(connectionString);
       
+      expect(ATXPAccount).toHaveBeenCalledWith(connectionString, { network: 'base' });
       expect(result).toEqual({ accountId: 'test-account' });
     });
   });
@@ -182,8 +185,8 @@ describe('ATXP Utils', () => {
         }
       } as Partial<Request> as Request;
 
-      // Mock ATXPAccount to throw an error for this test
-      (ATXPAccount as any).mockImplementationOnce(() => {
+      // Mock ATXPAccount to throw an error
+      vi.mocked(ATXPAccount).mockImplementationOnce(() => {
         throw new Error('Invalid connection string format');
       });
 

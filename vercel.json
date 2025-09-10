@@ -1,27 +1,12 @@
 {
   "version": 2,
-  "builds": [
+  "installCommand": "npm run install-all",
+  "buildCommand": "npm run build && cp -r frontend/build backend/public",
+  "outputDirectory": "backend",
+  "rewrites": [
     {
-      "src": "backend/server.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["backend/**", "frontend/build/**"]
-      }
+      "source": "/(.*)",
+      "destination": "/api"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/backend/server.ts"
-    }
-  ],
-  "installCommand": "npm run setup",
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "backend/server.ts": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }

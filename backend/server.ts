@@ -4,14 +4,19 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaymentUpdate } from './stage';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// Import the ATXP client SDK
-import { atxpClient, ATXPAccount } from '@atxp/client';
-import { ConsoleLogger, LogLevel } from '@atxp/common';
+// ESM __dirname polyfill
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaymentUpdate } from './stage.js';
+
+// ATXP client SDK imports (will be dynamically imported due to ES module compatibility)
 
 // Import ATXP utility functions
-import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
+import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils.js';
+import type { ATXPAccount } from '@atxp/client';
 
 // Load environment variables
 // In production, __dirname points to dist/, but .env is in the parent directory
@@ -26,12 +31,34 @@ const PORT = process.env.PORT || 3001;
 const FRONTEND_PORT = process.env.FRONTEND_PORT || 3000;
 
 // Set up CORS and body parsing middleware
-app.use(cors({
-  origin: [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`],
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow localhost
+    if (process.env.NODE_ENV !== 'production') {
+      const allowedOrigins = [`http://localhost:${FRONTEND_PORT}`, `http://localhost:${PORT}`];
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+    }
+    
+    // In production, allow any origin since we're serving both API and frontend from same domain
+    // This is safe because in production, the frontend is served by the same Express server
+    if (process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
+    
+    // For development, reject unknown origins
+    callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'x-atxp-connection-string']
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -84,8 +111,9 @@ const filestoreService = {
 
 // Handle OPTIONS for SSE endpoint
 app.options('/api/progress', (req: Request, res: Response) => {
+  const origin = req.headers.origin || req.headers.host || `http://localhost:${FRONTEND_PORT}`;
   res.writeHead(200, {
-    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
@@ -95,11 +123,12 @@ app.options('/api/progress', (req: Request, res: Response) => {
 
 // SSE endpoint for progress updates
 app.get('/api/progress', (req: Request, res: Response) => {
+  const origin = req.headers.origin || req.headers.host || `http://localhost:${FRONTEND_PORT}`;
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': `http://localhost:${FRONTEND_PORT}`,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, x-atxp-connection-string',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
@@ -167,11 +196,12 @@ async function pollForTaskCompletion(
           // Send stage update for file storage
           sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
 
-          // Create filestore client
-          const filestoreClient = await atxpClient({
+          // Create filestore client with dynamic import
+          const { atxpClient: filestoreAtxpClient } = await import('@atxp/client');
+          const filestoreClient = await filestoreAtxpClient({
             mcpServer: filestoreService.mcpServer,
             account: account,
-            onPayment: async ({ payment }) => {
+            onPayment: async ({ payment }: { payment: any }) => {
               console.log('Payment made to filestore:', payment);
               sendPaymentUpdate({
                 accountId: payment.accountId,
@@ -302,13 +332,17 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     // Send stage update for client creation
     sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
 
+    // Dynamically import ATXP modules
+    const { atxpClient } = await import('@atxp/client');
+    const { ConsoleLogger, LogLevel } = await import('@atxp/common');
+
     // Create a client using the `atxpClient` function for the ATXP Image MCP Server
     const imageClient = await atxpClient({
       mcpServer: imageService.mcpServer,
       account: account,
       allowedAuthorizationServers: [`http://localhost:${PORT}`, 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
       logger: new ConsoleLogger({level: LogLevel.DEBUG}),
-      onPayment: async ({ payment }) => {
+      onPayment: async ({ payment }: { payment: any }) => {
         console.log('Payment made to image service:', payment);
         sendPaymentUpdate({
           accountId: payment.accountId,
@@ -393,23 +427,47 @@ app.get('/api/validate-connection', (req: Request, res: Response) => {
 
 // Helper to resolve static path for frontend build
 function getStaticPath() {
-  // Try ./frontend/build first (works when running from project root in development)
-  let candidate = path.join(__dirname, './frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
+  const candidates = [
+    // Development: running from project root
+    path.join(__dirname, './frontend/build'),
+    // Development: running from backend/ directory  
+    path.join(__dirname, '../frontend/build'),
+    // Production: running from backend/dist/
+    path.join(__dirname, '../../frontend/build'),
+    // Vercel: frontend build copied to backend/public directory
+    path.join(__dirname, './public'),
+    path.join(__dirname, '../public'),
+    // Vercel: alternative paths
+    '/var/task/backend/public',
+    // Development fallback
+    path.join(__dirname, '../build')
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
-  // Try ../frontend/build (works when running from backend/ directory)
-  candidate = path.join(__dirname, '../frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
+
+  // List contents of current directory for debugging
+  try {
+    const currentDirContents = fs.readdirSync(__dirname);
+    
+    // Also check if build directory exists but is empty
+    const buildPath = path.join(__dirname, './build');
+    if (fs.existsSync(buildPath)) {
+      try {
+        const buildContents = fs.readdirSync(buildPath);
+      } catch (error) {
+        console.log('Could not read build directory contents:', error);
+      }
+    }
+  } catch (error) {
+    console.log('Could not read __dirname contents:', error);
   }
-  // Try ../../frontend/build (works when running from backend/dist/ in production)
-  candidate = path.join(__dirname, '../../frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
-  }
-  // Fallback: throw error
-  throw new Error('No frontend build directory found. Make sure to run "npm run build" first.');
+
+  // Fallback: throw error with more debugging info
+  throw new Error(`No frontend build directory found. __dirname: ${__dirname}. Checked paths: ${candidates.join(', ')}`);
 }
 
 // Serve static files in production
@@ -428,6 +486,12 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// For Vercel serverless deployment, export the app
+export default app;
+
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
