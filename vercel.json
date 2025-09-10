@@ -5,28 +5,17 @@
       "src": "backend/server.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["backend/**"]
-      }
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "buildCommand": "npm run build",
-        "outputDirectory": "build"
+        "includeFiles": ["backend/**", "frontend/build/**"]
       }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/server.ts"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "/backend/server.ts"
     }
   ],
+  "installCommand": "npm run install-all && npm run build",
   "env": {
     "NODE_ENV": "production"
   },

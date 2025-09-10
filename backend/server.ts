@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaymentUpdate } from './stage';
 
@@ -390,12 +391,40 @@ app.get('/api/validate-connection', (req: Request, res: Response) => {
   }
 });
 
+// Helper to resolve static path for frontend build
+function getStaticPath() {
+  // Try ./frontend/build first (works when running from project root in development)
+  let candidate = path.join(__dirname, './frontend/build');
+  if (fs.existsSync(candidate)) {
+    return candidate;
+  }
+  // Try ../frontend/build (works when running from backend/ directory)
+  candidate = path.join(__dirname, '../frontend/build');
+  if (fs.existsSync(candidate)) {
+    return candidate;
+  }
+  // Try ../../frontend/build (works when running from backend/dist/ in production)
+  candidate = path.join(__dirname, '../../frontend/build');
+  if (fs.existsSync(candidate)) {
+    return candidate;
+  }
+  // Fallback: throw error
+  throw new Error('No frontend build directory found. Make sure to run "npm run build" first.');
+}
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  // Add static file serving middleware
+  app.use(express.static(getStaticPath()));
 
+  // Handle client-side routing by serving index.html for non-API routes
   app.get('*', (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(getStaticPath(), 'index.html'));
+    } else {
+      res.status(404).json({ error: 'API endpoint not found' });
+    }
   });
 }
 

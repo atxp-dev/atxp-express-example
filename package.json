@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "start": "concurrently \"npm run server:prod\" \"npm run client:prod\"",
+    "start": "npm run build && npm run server:prod",
     "server": "cd backend && npm run dev",
     "server:prod": "cd backend && npm start",
     "client": "cd frontend && npm start",
-    "client:prod": "cd frontend && NODE_ENV=production npm start",
+    "client:prod": "echo 'In production mode, frontend is served by backend. Use npm start instead.'",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
