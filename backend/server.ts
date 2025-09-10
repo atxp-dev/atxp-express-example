@@ -3,7 +3,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
 import dotenv from 'dotenv';
-import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate } from './stage';
+import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaymentUpdate } from './stage';
 
 // Import the ATXP client SDK
 import { atxpClient, ATXPAccount } from '@atxp/client';
@@ -170,6 +170,18 @@ async function pollForTaskCompletion(
           const filestoreClient = await atxpClient({
             mcpServer: filestoreService.mcpServer,
             account: account,
+            onPayment: async ({ payment }) => {
+              console.log('Payment made to filestore:', payment);
+              sendPaymentUpdate({
+                accountId: payment.accountId,
+                resourceUrl: payment.resourceUrl,
+                resourceName: payment.resourceName,
+                network: payment.network,
+                currency: payment.currency,
+                amount: payment.amount.toString(),
+                iss: payment.iss
+              });
+            },
           });
 
           const filestoreResult = await filestoreClient.callTool({
@@ -295,6 +307,18 @@ app.post('/api/texts', async (req: Request, res: Response) => {
       account: account,
       allowedAuthorizationServers: [`http://localhost:${PORT}`, 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
       logger: new ConsoleLogger({level: LogLevel.DEBUG}),
+      onPayment: async ({ payment }) => {
+        console.log('Payment made to image service:', payment);
+        sendPaymentUpdate({
+          accountId: payment.accountId,
+          resourceUrl: payment.resourceUrl,
+          resourceName: payment.resourceName,
+          network: payment.network,
+          currency: payment.currency,
+          amount: payment.amount.toString(),
+          iss: payment.iss
+        });
+      },
     });
 
     // Send stage update for starting async image generation
