@@ -9,10 +9,5 @@
   "installCommand": "npm run setup",
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "backend/server.ts": {
-      "maxDuration": 30
-    }
   }
 }
