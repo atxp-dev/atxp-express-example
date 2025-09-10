@@ -16,6 +16,7 @@ import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaym
 
 // Import ATXP utility functions
 import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils.js';
+import type { ATXPAccount } from '@atxp/client';
 
 // Load environment variables
 // In production, __dirname points to dist/, but .env is in the parent directory
@@ -152,7 +153,7 @@ async function pollForTaskCompletion(
   taskId: string, 
   textId: number, 
   requestId: string,
-  account: any
+  account: ATXPAccount
 ) {
   console.log(`Starting polling for task ${taskId}`);
   let completed = false;
@@ -301,7 +302,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 
   // Get ATXP connection string from header or environment variable
   let connectionString: string;
-  let account: any;
+  let account: ATXPAccount;
 
   try {
     connectionString = getATXPConnectionString(req);
