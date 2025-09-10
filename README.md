@@ -43,6 +43,16 @@ agent-demo/
 - `POST /api/texts` - Submit new text
 - `GET /api/health` - Health check endpoint
 
+## Quick Deploy
+
+Deploy this ATXP Express example to your preferred cloud platform with one click:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fatxp-dev%2Fatxp-express-example&project-name=atxp-express-example&repository-name=atxp-express-example)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/atxp-dev/atxp-express-example)
+
+After deploying, you'll need to provide your ATXP connection string through the app's setup screen.
+
 ## Quick Start
 
 ### Prerequisites
