@@ -7,6 +7,12 @@ interface Env {
   FRONTEND_PORT?: string;
 }
 
+// ExecutionContext interface for Cloudflare Workers
+interface ExecutionContext {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+}
+
 // Simple in-memory storage (in production, you'd use Cloudflare KV or D1)
 let texts: Array<{
   id: number;
@@ -35,12 +41,12 @@ export default {
 
     // Health check endpoint
     if (url.pathname === '/api/health') {
-      return Response.json({ status: 'ok', timestamp: new Date().toISOString() }, { headers: corsHeaders });
+      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), { headers: corsHeaders });
     }
 
     // Get texts endpoint
     if (url.pathname === '/api/texts' && request.method === 'GET') {
-      return Response.json({ texts }, { headers: corsHeaders });
+      return new Response(JSON.stringify({ texts }), { headers: corsHeaders });
     }
 
     // Post text endpoint  
@@ -50,8 +56,8 @@ export default {
         const connectionString = request.headers.get('x-atxp-connection-string') || env.ATXP_CONNECTION_STRING;
         
         if (!connectionString) {
-          return Response.json(
-            { error: 'ATXP connection string is required. Please provide it via x-atxp-connection-string header.' },
+          return new Response(
+            JSON.stringify({ error: 'ATXP connection string is required. Please provide it via x-atxp-connection-string header.' }),
             { status: 400, headers: corsHeaders }
           );
         }
@@ -66,10 +72,10 @@ export default {
         };
 
         texts.push(newText);
-        return Response.json(newText, { headers: corsHeaders });
+        return new Response(JSON.stringify(newText), { headers: corsHeaders });
       } catch (error) {
-        return Response.json(
-          { error: 'Invalid JSON body' },
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON body' }),
           { status: 400, headers: corsHeaders }
         );
       }
@@ -79,8 +85,8 @@ export default {
     if (url.pathname === '/api/validate-connection' && request.method === 'GET') {
       const connectionString = request.headers.get('x-atxp-connection-string');
       if (!connectionString) {
-        return Response.json(
-          { error: 'Connection string header is required' },
+        return new Response(
+          JSON.stringify({ error: 'Connection string header is required' }),
           { status: 400, headers: corsHeaders }
         );
       }
@@ -88,10 +94,10 @@ export default {
       // Basic URL validation
       try {
         new URL(connectionString);
-        return Response.json({ valid: true }, { headers: corsHeaders });
+        return new Response(JSON.stringify({ valid: true }), { headers: corsHeaders });
       } catch {
-        return Response.json(
-          { error: 'Invalid connection string format' },
+        return new Response(
+          JSON.stringify({ error: 'Invalid connection string format' }),
           { status: 400, headers: corsHeaders }
         );
       }
