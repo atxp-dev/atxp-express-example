@@ -1,5 +1,4 @@
 import { Request } from 'express';
-import { ATXPAccount } from '@atxp/client';
 
 /**
  * Get ATXP connection string from header or environment variable
@@ -23,7 +22,8 @@ export function getATXPConnectionString(req: Request): string {
 /**
  * Find ATXPAccount object from connection string
  */
-export function findATXPAccount(connectionString: string): ATXPAccount {
+export async function findATXPAccount(connectionString: string): Promise<any> {
+  const { ATXPAccount } = await import('@atxp/client');
   return new ATXPAccount(connectionString, {network: 'base'});
 }
 
@@ -31,10 +31,10 @@ export function findATXPAccount(connectionString: string): ATXPAccount {
  * Validate if an ATXP account connection string is valid
  * Returns true if the connection string can be used to create a valid ATXPAccount
  */
-export function validateATXPConnectionString(req: Request): { isValid: boolean; error?: string } {
+export async function validateATXPConnectionString(req: Request): Promise<{ isValid: boolean; error?: string }> {
   try {
     const connectionString = getATXPConnectionString(req);
-    const account = findATXPAccount(connectionString);
+    const account = await findATXPAccount(connectionString);
     
     // Basic validation - if we can create an account without throwing, it's valid
     // Additional validation could be added here if needed (e.g., checking account properties)
