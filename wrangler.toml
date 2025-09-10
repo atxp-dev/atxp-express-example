@@ -1,0 +1,15 @@
+# Cloudflare Workers configuration for the backend
+name = "atxp-express-backend"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Main worker script
+main = "backend/worker.ts"
+
+# Node.js compatibility for Express and ATXP client
+node_compat = true
+
+# Environment variables (users will set their own ATXP_CONNECTION_STRING)
+[env.production.vars]
+NODE_ENV = "production"
+FRONTEND_PORT = "3000"

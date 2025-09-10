@@ -51,6 +51,8 @@ Deploy this ATXP Express example to your preferred cloud platform with one click
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/atxp-dev/atxp-express-example)
 
+[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/atxp-dev/atxp-express-example)
+
 After deploying, you'll need to provide your ATXP connection string through the app's setup screen.
 
 ## Quick Start
