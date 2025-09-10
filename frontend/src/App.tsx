@@ -162,14 +162,26 @@ function App(): JSX.Element {
 
     console.log('Setting up SSE connection...');
     
+    // Debug environment variables
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('REACT_APP_BACKEND_PORT:', process.env.REACT_APP_BACKEND_PORT);
+    console.log('window.location:', window.location);
+    
     // In production, use relative URL since frontend and backend are served from same domain
     // In development, use direct backend URL since SSE doesn't work well through CRA proxy
+    // Use multiple methods to detect production environment
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        !window.location.hostname.includes('localhost') ||
+                        window.location.protocol === 'https:';
+    
     let sseUrl: string;
-    if (process.env.NODE_ENV === 'production') {
+    if (isProduction) {
       sseUrl = '/api/progress';
+      console.log('Production detected - using relative URL');
     } else {
       const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
       sseUrl = `http://localhost:${backendPort}/api/progress`;
+      console.log('Development detected - using localhost URL');
     }
     
     console.log('Connecting to SSE endpoint:', sseUrl);
