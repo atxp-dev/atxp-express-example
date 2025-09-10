@@ -380,6 +380,18 @@ function App(): JSX.Element {
                 height="32"
               />
             </a>
+            <a
+              href="https://render.com/deploy?repo=https://github.com/robdimarco/atxp-express-example"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="deploy-button render"
+            >
+              <img
+                src="https://render.com/images/deploy-to-render-button.svg"
+                alt="Deploy to Render"
+                height="32"
+              />
+            </a>
           </div>
         </div>
         
