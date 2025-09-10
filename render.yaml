@@ -3,7 +3,7 @@ services:
     name: atxp-express-app
     runtime: node
     plan: free
-    buildCommand: npm run install-all && npm run build
+    buildCommand: npm run setup
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV

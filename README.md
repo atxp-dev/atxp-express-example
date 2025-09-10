@@ -68,9 +68,15 @@ After deploying, you'll need to provide your ATXP connection string through the 
    cd agent-demo
    ```
 
-2. Install all dependencies:
+2. Install dependencies and build the project:
    ```bash
-   npm run install-all
+   npm run setup
+   ```
+   
+   Or, if you prefer to do it step by step:
+   ```bash
+   npm run install-all  # Install all dependencies
+   npm run build        # Build both frontend and backend
    ```
 
 ### Development
@@ -214,16 +220,22 @@ curl -X POST http://localhost:3001/api/texts \
 
 ## Development Scripts
 
-- `npm run dev` - Start both frontend and backend in development mode (with hot reloading)
-- `npm run start` - Start both frontend and backend in production mode (single browser opening)
-- `npm run server` - Start only the backend server (TypeScript with hot reload)
-- `npm run server:prod` - Start only the backend server in production mode
-- `npm run client` - Start only the frontend development server
-- `npm run client:prod` - Start only the frontend in production mode
+### Setup & Build
+- `npm run setup` - Complete setup: install all dependencies and build everything
+- `npm run install-all` - Install dependencies for all packages (root, backend, frontend)
 - `npm run build` - Build both frontend and backend for production
 - `npm run build:backend` - Build only the backend TypeScript code
 - `npm run build:frontend` - Build only the frontend for production
-- `npm run install-all` - Install dependencies for all packages and build backend
+
+### Development
+- `npm run dev` - Start both frontend and backend in development mode (with hot reloading)
+- `npm run server` - Start only the backend server (TypeScript with hot reload)
+- `npm run client` - Start only the frontend development server
+
+### Production
+- `npm start` - Start the production server (serves both API and frontend)
+- `npm run server:prod` - Start only the backend server in production mode
+- `npm run client:prod` - Info message (frontend served by backend in production)
 
 ## Technologies Used
 

@@ -15,7 +15,7 @@
       "dest": "/backend/server.ts"
     }
   ],
-  "installCommand": "npm run install-all && npm run build",
+  "installCommand": "npm run setup",
   "env": {
     "NODE_ENV": "production"
   },
