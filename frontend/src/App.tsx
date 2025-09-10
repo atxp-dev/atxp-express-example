@@ -160,7 +160,7 @@ function App(): JSX.Element {
       eventSourceRef.current = null;
     }
 
-    console.log('Setting up SSE connection... v2');
+    console.log('Setting up SSE connection...');
     
     // Always use relative URLs for same-origin requests (production deployments)
     // Only use localhost URLs when specifically in localhost development
@@ -178,7 +178,6 @@ function App(): JSX.Element {
       console.log('Deployed environment detected - using relative URL');
     }
     
-    console.log('Connecting to SSE endpoint:', sseUrl);
     const eventSource = new EventSource(sseUrl);
     eventSourceRef.current = eventSource;
     
