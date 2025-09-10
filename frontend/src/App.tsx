@@ -162,12 +162,6 @@ function App(): JSX.Element {
 
     console.log('Setting up SSE connection... v2');
     
-    // Debug environment variables
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('REACT_APP_BACKEND_PORT:', process.env.REACT_APP_BACKEND_PORT);
-    console.log('window.location:', window.location);
-    console.log('Cache buster: 2025-09-10-v2');
-    
     // Always use relative URLs for same-origin requests (production deployments)
     // Only use localhost URLs when specifically in localhost development
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
