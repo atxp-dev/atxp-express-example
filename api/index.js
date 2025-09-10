@@ -1,12 +1,10 @@
 // Vercel serverless function entry point
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+// Use dynamic import to handle ES modules in Vercel's runtime
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Import the compiled Express app
-const { default: app } = await import('../backend/dist/server.js');
-
-// Export the handler for Vercel
-export default app;
+module.exports = async (req, res) => {
+  // Dynamically import the ES module Express app
+  const { default: app } = await import('../backend/dist/server.js');
+  
+  // Call the Express app as a handler
+  return app(req, res);
+};
