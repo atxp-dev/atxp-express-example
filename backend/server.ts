@@ -165,12 +165,12 @@ async function pollForTaskCompletion(
           // Send stage update for file storage
           sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
 
-          // Create filestore client with dynamic import
-          const { atxpClient: filestoreAtxpClient } = await import('@atxp/client');
+          // Create filestore client with dynamic import using Function constructor
+          const { atxpClient: filestoreAtxpClient } = await (new Function('return import("@atxp/client")')());
           const filestoreClient = await filestoreAtxpClient({
             mcpServer: filestoreService.mcpServer,
             account: account,
-            onPayment: async ({ payment }) => {
+            onPayment: async ({ payment }: { payment: any }) => {
               console.log('Payment made to filestore:', payment);
               sendPaymentUpdate({
                 accountId: payment.accountId,
@@ -301,9 +301,9 @@ app.post('/api/texts', async (req: Request, res: Response) => {
     // Send stage update for client creation
     sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
 
-    // Dynamically import ATXP modules
-    const { atxpClient } = await import('@atxp/client');
-    const { ConsoleLogger, LogLevel } = await import('@atxp/common');
+    // Dynamically import ATXP modules using Function constructor to avoid TypeScript compilation issues
+    const { atxpClient } = await (new Function('return import("@atxp/client")')());
+    const { ConsoleLogger, LogLevel } = await (new Function('return import("@atxp/common")')());
 
     // Create a client using the `atxpClient` function for the ATXP Image MCP Server
     const imageClient = await atxpClient({
@@ -311,7 +311,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
       account: account,
       allowedAuthorizationServers: [`http://localhost:${PORT}`, 'https://auth.atxp.ai', 'https://atxp-accounts-staging.onrender.com/'],
       logger: new ConsoleLogger({level: LogLevel.DEBUG}),
-      onPayment: async ({ payment }) => {
+      onPayment: async ({ payment }: { payment: any }) => {
         console.log('Payment made to image service:', payment);
         sendPaymentUpdate({
           accountId: payment.accountId,
