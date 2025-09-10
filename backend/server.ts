@@ -6,9 +6,7 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { sendSSEUpdate, addSSEClient, removeSSEClient, sendStageUpdate, sendPaymentUpdate } from './stage';
 
-// Import the ATXP client SDK
-import { atxpClient, ATXPAccount } from '@atxp/client';
-import { ConsoleLogger, LogLevel } from '@atxp/common';
+// ATXP client SDK imports (will be dynamically imported due to ES module compatibility)
 
 // Import ATXP utility functions
 import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
@@ -124,7 +122,7 @@ async function pollForTaskCompletion(
   taskId: string, 
   textId: number, 
   requestId: string,
-  account: ATXPAccount
+  account: any
 ) {
   console.log(`Starting polling for task ${taskId}`);
   let completed = false;
@@ -167,8 +165,9 @@ async function pollForTaskCompletion(
           // Send stage update for file storage
           sendStageUpdate(requestId, 'storing-file', 'Storing image in ATXP Filestore...', 'in-progress');
 
-          // Create filestore client
-          const filestoreClient = await atxpClient({
+          // Create filestore client with dynamic import
+          const { atxpClient: filestoreAtxpClient } = await import('@atxp/client');
+          const filestoreClient = await filestoreAtxpClient({
             mcpServer: filestoreService.mcpServer,
             account: account,
             onPayment: async ({ payment }) => {
@@ -272,11 +271,11 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 
   // Get ATXP connection string from header or environment variable
   let connectionString: string;
-  let account: ATXPAccount;
+  let account: any;
 
   try {
     connectionString = getATXPConnectionString(req);
-    account = findATXPAccount(connectionString);
+    account = await findATXPAccount(connectionString);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to get ATXP connection string';
     return res.status(400).json({ error: errorMessage });
@@ -301,6 +300,10 @@ app.post('/api/texts', async (req: Request, res: Response) => {
   try {
     // Send stage update for client creation
     sendStageUpdate(requestId, 'creating-clients', 'Initializing ATXP clients...', 'in-progress');
+
+    // Dynamically import ATXP modules
+    const { atxpClient } = await import('@atxp/client');
+    const { ConsoleLogger, LogLevel } = await import('@atxp/common');
 
     // Create a client using the `atxpClient` function for the ATXP Image MCP Server
     const imageClient = await atxpClient({
@@ -375,8 +378,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Connection validation endpoint
-app.get('/api/validate-connection', (req: Request, res: Response) => {
-  const validationResult = validateATXPConnectionString(req);
+app.get('/api/validate-connection', async (req: Request, res: Response) => {
+  const validationResult = await validateATXPConnectionString(req);
   
   if (validationResult.isValid) {
     res.json({ 
