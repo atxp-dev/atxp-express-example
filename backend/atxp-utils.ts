@@ -23,7 +23,7 @@ export function getATXPConnectionString(req: Request): string {
  * Find ATXPAccount object from connection string
  */
 export async function findATXPAccount(connectionString: string): Promise<any> {
-  const { ATXPAccount } = await import('@atxp/client');
+  const { ATXPAccount } = await (new Function('return import("@atxp/client")')());
   return new ATXPAccount(connectionString, {network: 'base'});
 }
 
