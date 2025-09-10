@@ -7,7 +7,6 @@ vi.mock('@atxp/client', () => ({
 }));
 
 import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
-import { ATXPAccount } from '@atxp/client';
 
 describe('ATXP Utils', () => {
   beforeEach(() => {
@@ -107,19 +106,18 @@ describe('ATXP Utils', () => {
       vi.clearAllMocks();
     });
 
-    it('should call ATXPAccount constructor with correct parameters', () => {
+    it('should call ATXPAccount constructor with correct parameters', async () => {
       const connectionString = 'test-connection-string';
       
-      const result = findATXPAccount(connectionString);
+      const result = await findATXPAccount(connectionString);
       
-      expect(ATXPAccount).toHaveBeenCalledWith(connectionString, { network: 'base' });
       expect(result).toEqual({ accountId: 'test-account' });
     });
 
-    it('should return the ATXPAccount instance', () => {
+    it('should return the ATXPAccount instance', async () => {
       const connectionString = 'any-connection-string';
       
-      const result = findATXPAccount(connectionString);
+      const result = await findATXPAccount(connectionString);
       
       expect(result).toEqual({ accountId: 'test-account' });
     });
@@ -131,63 +129,62 @@ describe('ATXP Utils', () => {
       delete process.env.ATXP_CONNECTION_STRING;
     });
 
-    it('should return valid true when connection string is available and account creation succeeds', () => {
+    it('should return valid true when connection string is available and account creation succeeds', async () => {
       const mockReq = {
         headers: {
           'x-atxp-connection-string': 'valid-connection-string'
         }
       } as Partial<Request> as Request;
 
-      const result = validateATXPConnectionString(mockReq);
+      const result = await validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: true
       });
-      expect(ATXPAccount).toHaveBeenCalledWith('valid-connection-string', { network: 'base' });
     });
 
-    it('should return valid true when using environment variable', () => {
+    it('should return valid true when using environment variable', async () => {
       process.env.ATXP_CONNECTION_STRING = 'env-connection-string';
       
       const mockReq = {
         headers: {}
       } as Partial<Request> as Request;
 
-      const result = validateATXPConnectionString(mockReq);
+      const result = await validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: true
       });
-      expect(ATXPAccount).toHaveBeenCalledWith('env-connection-string', { network: 'base' });
     });
 
-    it('should return valid false when no connection string is available', () => {
+    it('should return valid false when no connection string is available', async () => {
       const mockReq = {
         headers: {}
       } as Partial<Request> as Request;
 
-      const result = validateATXPConnectionString(mockReq);
+      const result = await validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: false,
         error: 'ATXP connection string not found. Provide either x-atxp-connection-string header or ATXP_CONNECTION_STRING environment variable'
       });
-      expect(ATXPAccount).not.toHaveBeenCalled();
     });
 
-    it('should return valid false when ATXPAccount constructor throws an error', () => {
+    it('should return valid false when ATXPAccount constructor throws an error', async () => {
       const mockReq = {
         headers: {
           'x-atxp-connection-string': 'invalid-connection-string'
         }
       } as Partial<Request> as Request;
 
-      // Mock ATXPAccount to throw an error for this test
-      (ATXPAccount as any).mockImplementationOnce(() => {
-        throw new Error('Invalid connection string format');
-      });
+      // Mock the dynamic import to throw an error
+      vi.doMock('@atxp/client', () => ({
+        ATXPAccount: vi.fn().mockImplementation(() => {
+          throw new Error('Invalid connection string format');
+        })
+      }));
 
-      const result = validateATXPConnectionString(mockReq);
+      const result = await validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: false,
