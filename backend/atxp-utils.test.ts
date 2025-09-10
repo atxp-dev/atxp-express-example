@@ -109,19 +109,21 @@ describe('ATXP Utils', () => {
       vi.clearAllMocks();
     });
 
-    it('should call ATXPAccount constructor with correct parameters', async () => {
+    it('should call ATXPAccount constructor with correct parameters', () => {
       const connectionString = 'test-connection-string';
       
       const result = findATXPAccount(connectionString);
       
+      expect(ATXPAccount).toHaveBeenCalledWith(connectionString, { network: 'base' });
       expect(result).toEqual({ accountId: 'test-account' });
     });
 
-    it('should return the ATXPAccount instance', async () => {
+    it('should return the ATXPAccount instance', () => {
       const connectionString = 'any-connection-string';
       
       const result = findATXPAccount(connectionString);
       
+      expect(ATXPAccount).toHaveBeenCalledWith(connectionString, { network: 'base' });
       expect(result).toEqual({ accountId: 'test-account' });
     });
   });
