@@ -17,7 +17,7 @@
     }
   ],
   "installCommand": "npm run install-all",
-  "buildCommand": "NODE_ENV=production npm run build && cp -r frontend/build backend/",
+  "buildCommand": "npm run build && cp -r frontend/build backend/",
   "env": {
     "NODE_ENV": "production"
   }

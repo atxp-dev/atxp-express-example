@@ -167,21 +167,20 @@ function App(): JSX.Element {
     console.log('REACT_APP_BACKEND_PORT:', process.env.REACT_APP_BACKEND_PORT);
     console.log('window.location:', window.location);
     
-    // In production, use relative URL since frontend and backend are served from same domain
-    // In development, use direct backend URL since SSE doesn't work well through CRA proxy
-    // Use multiple methods to detect production environment
-    const isProduction = process.env.NODE_ENV === 'production' || 
-                        !window.location.hostname.includes('localhost') ||
-                        window.location.protocol === 'https:';
+    // Always use relative URLs for same-origin requests (production deployments)
+    // Only use localhost URLs when specifically in localhost development
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
     let sseUrl: string;
-    if (isProduction) {
-      sseUrl = '/api/progress';
-      console.log('Production detected - using relative URL');
-    } else {
+    if (isLocalhost) {
+      // Development: use direct backend URL since CRA proxy doesn't handle SSE well
       const backendPort = process.env.REACT_APP_BACKEND_PORT || '3001';
       sseUrl = `http://localhost:${backendPort}/api/progress`;
-      console.log('Development detected - using localhost URL');
+      console.log('Localhost detected - using direct backend URL');
+    } else {
+      // Production/deployed: use relative URL (same origin)
+      sseUrl = '/api/progress';
+      console.log('Deployed environment detected - using relative URL');
     }
     
     console.log('Connecting to SSE endpoint:', sseUrl);
