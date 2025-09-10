@@ -144,8 +144,8 @@ describe('API Endpoints', () => {
   describe('GET /api/validate-connection', () => {
     beforeEach(() => {
       // Add the new validation endpoint to our test app
-      app.get('/api/validate-connection', async (req, res) => {
-        const validationResult = await validateATXPConnectionString(req);
+      app.get('/api/validate-connection', (req, res) => {
+        const validationResult = validateATXPConnectionString(req);
         
         if (validationResult.isValid) {
           res.json({ 

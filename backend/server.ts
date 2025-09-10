@@ -305,7 +305,7 @@ app.post('/api/texts', async (req: Request, res: Response) => {
 
   try {
     connectionString = getATXPConnectionString(req);
-    account = await findATXPAccount(connectionString);
+    account = findATXPAccount(connectionString);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to get ATXP connection string';
     return res.status(400).json({ error: errorMessage });
@@ -408,8 +408,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Connection validation endpoint
-app.get('/api/validate-connection', async (req: Request, res: Response) => {
-  const validationResult = await validateATXPConnectionString(req);
+app.get('/api/validate-connection', (req: Request, res: Response) => {
+  const validationResult = validateATXPConnectionString(req);
   
   if (validationResult.isValid) {
     res.json({ 

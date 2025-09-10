@@ -7,11 +7,14 @@ vi.mock('@atxp/client', () => ({
 }));
 
 import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils.js';
+import { ATXPAccount } from '@atxp/client';
 
 describe('ATXP Utils', () => {
   beforeEach(() => {
     // Clear environment variables before each test
     delete process.env.ATXP_CONNECTION_STRING;
+    // Reset mocks
+    vi.clearAllMocks();
   });
 
   describe('getATXPConnectionString', () => {
@@ -109,7 +112,7 @@ describe('ATXP Utils', () => {
     it('should call ATXPAccount constructor with correct parameters', async () => {
       const connectionString = 'test-connection-string';
       
-      const result = await findATXPAccount(connectionString);
+      const result = findATXPAccount(connectionString);
       
       expect(result).toEqual({ accountId: 'test-account' });
     });
@@ -117,7 +120,7 @@ describe('ATXP Utils', () => {
     it('should return the ATXPAccount instance', async () => {
       const connectionString = 'any-connection-string';
       
-      const result = await findATXPAccount(connectionString);
+      const result = findATXPAccount(connectionString);
       
       expect(result).toEqual({ accountId: 'test-account' });
     });
@@ -136,7 +139,7 @@ describe('ATXP Utils', () => {
         }
       } as Partial<Request> as Request;
 
-      const result = await validateATXPConnectionString(mockReq);
+      const result = validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: true
@@ -150,7 +153,7 @@ describe('ATXP Utils', () => {
         headers: {}
       } as Partial<Request> as Request;
 
-      const result = await validateATXPConnectionString(mockReq);
+      const result = validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: true
@@ -162,7 +165,7 @@ describe('ATXP Utils', () => {
         headers: {}
       } as Partial<Request> as Request;
 
-      const result = await validateATXPConnectionString(mockReq);
+      const result = validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: false,
@@ -170,21 +173,19 @@ describe('ATXP Utils', () => {
       });
     });
 
-    it('should return valid false when ATXPAccount constructor throws an error', async () => {
+    it('should return valid false when ATXPAccount constructor throws an error', () => {
       const mockReq = {
         headers: {
           'x-atxp-connection-string': 'invalid-connection-string'
         }
       } as Partial<Request> as Request;
 
-      // Mock the dynamic import to throw an error
-      vi.doMock('@atxp/client', () => ({
-        ATXPAccount: vi.fn().mockImplementation(() => {
-          throw new Error('Invalid connection string format');
-        })
-      }));
+      // Mock ATXPAccount to throw an error
+      vi.mocked(ATXPAccount).mockImplementationOnce(() => {
+        throw new Error('Invalid connection string format');
+      });
 
-      const result = await validateATXPConnectionString(mockReq);
+      const result = validateATXPConnectionString(mockReq);
 
       expect(result).toEqual({
         isValid: false,
