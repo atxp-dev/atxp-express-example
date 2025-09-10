@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/backend/dist/server.js"
+      "destination": "/dist/server.js"
     }
   ]
 }
