@@ -2,10 +2,11 @@
   "name": "agent-demo-backend",
   "version": "1.0.0",
   "description": "Express backend for agent-demo",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "start": "NODE_ENV=production node dist/server.js",
-    "dev": "nodemon --exec ts-node server.ts",
+    "dev": "nodemon --exec node --loader ts-node/esm server.ts",
     "build": "tsc",
     "build:worker": "echo 'Cloudflare Workers will build directly from TypeScript source'",
     "test": "vitest run",

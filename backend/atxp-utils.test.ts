@@ -6,7 +6,7 @@ vi.mock('@atxp/client', () => ({
   ATXPAccount: vi.fn().mockImplementation(() => ({ accountId: 'test-account' }))
 }));
 
-import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils';
+import { getATXPConnectionString, findATXPAccount, validateATXPConnectionString } from './atxp-utils.js';
 
 describe('ATXP Utils', () => {
   beforeEach(() => {
