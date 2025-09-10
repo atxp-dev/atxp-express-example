@@ -369,7 +369,7 @@ function App(): JSX.Element {
           </div>
           <div className="deploy-buttons">
             <a
-              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frobdimarco%2Fatxp-express-example&env=ATXP_CONNECTION_STRING&envDescription=Your%20ATXP%20connection%20string%20from%20accounts.atxp.ai"
+              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frobdimarco%2Fatxp-express-example"
               target="_blank"
               rel="noopener noreferrer"
               className="deploy-button vercel"

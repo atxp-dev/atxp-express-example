@@ -12,8 +12,6 @@ services:
         value: 10000
       - key: FRONTEND_PORT
         value: 3000
-      - key: ATXP_CONNECTION_STRING
-        sync: false
     healthCheckPath: /api/health
 
   - type: web
