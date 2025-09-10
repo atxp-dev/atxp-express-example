@@ -409,12 +409,12 @@ function getStaticPath() {
     path.join(__dirname, '../frontend/build'),
     // Production: running from backend/dist/
     path.join(__dirname, '../../frontend/build'),
-    // Vercel: frontend build at root level
-    path.join(__dirname, '../build'),
+    // Vercel: frontend build copied to backend directory
     path.join(__dirname, './build'),
     // Vercel: alternative paths
-    '/var/task/frontend/build',
-    '/vercel/path0/frontend/build'
+    '/var/task/backend/build',
+    // Development fallback
+    path.join(__dirname, '../build')
   ];
 
   console.log('__dirname:', __dirname);
@@ -432,6 +432,17 @@ function getStaticPath() {
   try {
     const currentDirContents = fs.readdirSync(__dirname);
     console.log(`Contents of __dirname (${__dirname}):`, currentDirContents);
+    
+    // Also check if build directory exists but is empty
+    const buildPath = path.join(__dirname, './build');
+    if (fs.existsSync(buildPath)) {
+      try {
+        const buildContents = fs.readdirSync(buildPath);
+        console.log(`Contents of build directory (${buildPath}):`, buildContents);
+      } catch (error) {
+        console.log('Could not read build directory contents:', error);
+      }
+    }
   } catch (error) {
     console.log('Could not read __dirname contents:', error);
   }
