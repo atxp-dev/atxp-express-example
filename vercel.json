@@ -1,8 +1,8 @@
 {
   "version": 2,
   "installCommand": "npm run install-all",
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/build",
+  "buildCommand": "npm run build && cp -r frontend/build backend/public",
+  "outputDirectory": "backend",
   "rewrites": [
     {
       "source": "/(.*)",

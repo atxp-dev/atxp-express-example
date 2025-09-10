@@ -433,10 +433,11 @@ function getStaticPath() {
     path.join(__dirname, '../frontend/build'),
     // Production: running from backend/dist/
     path.join(__dirname, '../../frontend/build'),
-    // Vercel: frontend build copied to backend directory
-    path.join(__dirname, './build'),
+    // Vercel: frontend build copied to backend/public directory
+    path.join(__dirname, './public'),
+    path.join(__dirname, '../public'),
     // Vercel: alternative paths
-    '/var/task/backend/build',
+    '/var/task/backend/public',
     // Development fallback
     path.join(__dirname, '../build')
   ];
