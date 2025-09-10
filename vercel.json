@@ -4,7 +4,7 @@
   "buildCommand": "npm run build && cp -r frontend/build backend/",
   "functions": {
     "backend/dist/server.js": {
-      "runtime": "nodejs22.x"
+      "runtime": "@vercel/node"
     }
   }
 }

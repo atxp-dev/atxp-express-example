@@ -4,6 +4,9 @@
   "description": "Express backend for agent-demo",
   "type": "module",
   "main": "dist/server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "NODE_ENV=production node dist/server.js",
     "dev": "nodemon --exec node --loader ts-node/esm server.ts",
