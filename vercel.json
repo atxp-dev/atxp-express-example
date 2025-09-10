@@ -6,8 +6,7 @@
       "use": "@vercel/node",
       "config": {
         "maxLambdaSize": "50mb",
-        "runtime": "nodejs20.x",
-        "includeFiles": ["frontend/build/**"]
+        "runtime": "nodejs20.x"
       }
     }
   ],
@@ -17,8 +16,8 @@
       "dest": "/backend/server.ts"
     }
   ],
-  "installCommand": "npm run setup",
-  "buildCommand": "npm run build",
+  "installCommand": "npm run install-all",
+  "buildCommand": "npm run build && cp -r frontend/build backend/",
   "env": {
     "NODE_ENV": "production"
   }
