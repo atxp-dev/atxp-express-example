@@ -402,23 +402,42 @@ app.get('/api/validate-connection', async (req: Request, res: Response) => {
 
 // Helper to resolve static path for frontend build
 function getStaticPath() {
-  // Try ./frontend/build first (works when running from project root in development)
-  let candidate = path.join(__dirname, './frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
+  const candidates = [
+    // Development: running from project root
+    path.join(__dirname, './frontend/build'),
+    // Development: running from backend/ directory  
+    path.join(__dirname, '../frontend/build'),
+    // Production: running from backend/dist/
+    path.join(__dirname, '../../frontend/build'),
+    // Vercel: frontend build at root level
+    path.join(__dirname, '../build'),
+    path.join(__dirname, './build'),
+    // Vercel: alternative paths
+    '/var/task/frontend/build',
+    '/vercel/path0/frontend/build'
+  ];
+
+  console.log('__dirname:', __dirname);
+  console.log('Looking for frontend build in candidates:', candidates);
+
+  for (const candidate of candidates) {
+    console.log(`Checking: ${candidate}, exists: ${fs.existsSync(candidate)}`);
+    if (fs.existsSync(candidate)) {
+      console.log(`Found frontend build at: ${candidate}`);
+      return candidate;
+    }
   }
-  // Try ../frontend/build (works when running from backend/ directory)
-  candidate = path.join(__dirname, '../frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
+
+  // List contents of current directory for debugging
+  try {
+    const currentDirContents = fs.readdirSync(__dirname);
+    console.log(`Contents of __dirname (${__dirname}):`, currentDirContents);
+  } catch (error) {
+    console.log('Could not read __dirname contents:', error);
   }
-  // Try ../../frontend/build (works when running from backend/dist/ in production)
-  candidate = path.join(__dirname, '../../frontend/build');
-  if (fs.existsSync(candidate)) {
-    return candidate;
-  }
-  // Fallback: throw error
-  throw new Error('No frontend build directory found. Make sure to run "npm run build" first.');
+
+  // Fallback: throw error with more debugging info
+  throw new Error(`No frontend build directory found. __dirname: ${__dirname}. Checked paths: ${candidates.join(', ')}`);
 }
 
 // Serve static files in production
